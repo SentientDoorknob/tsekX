@@ -142,6 +142,12 @@ typedef enum {
 } tsekKeyCode;
 
 typedef enum {
+  TSEKI_WINDOWED,
+  TSEKI_WINDOWED_FULLSCREEN,
+  TSEKI_BORDERLESS
+} tsekWindowState;
+
+typedef enum {
   WINDOW_RECT,
   WINDOW_POS,
   WINDOW_DIM,
@@ -156,6 +162,8 @@ typedef enum {
 
   KEYMAP,
   CALLBACKS,
+
+  WINDOW_STATE,
 } tsekIWindowParam;
 
 typedef struct {
@@ -204,6 +212,8 @@ typedef struct {
 
   void (*tsegsize)(tsekIWindow*, uint32_t width, uint32_t height);
   void (*size)(tsekIWindow*, uint32_t width, uint32_t height);
+
+  void (*statechange)(tsekIWindow*, tsekWindowState);
 } tsekCallbacks;
 
 typedef struct {
@@ -233,6 +243,7 @@ void tsekI_set_cursor_visible(tsekIWindow*, bool);
 
 void tsekI_swap_buffers(tsekIWindow*);
 
+void tsekI_request_window_state(tsekIWindow* window, tsekWindowState state);
 // messager
 
 void tsekI_get_window_param(tsekIWindow* window, tsekIWindowParam param, void* out);

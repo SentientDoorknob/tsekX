@@ -57,8 +57,10 @@ typedef struct {
 } tsekBuffer;
 
 typedef struct {
-  const char* vertex_src;
-  const char* fragment_src;
+  char* vertex_src;
+  char* fragment_src;
+  int free;
+
   uint32_t program;
 
   tsekUniformCache uniform_cache;
@@ -89,6 +91,7 @@ void tsekG_describe_buffer(tsekBuffer* buffer, tsekFormat format);
 void tsekG_fill_buffer(tsekBuffer* buffer, void* vertices, uint32_t vertices_size, uint32_t* indices, uint32_t index_count);
 void tsekG_render_buffer(tsekBuffer* buffer, tsekShader* shader, GLenum primitive);
 
+void tsekG_read_shader(tsekShader* shader, char* vertex_path, char* frag_path);
 void tsekG_compile_shader(tsekShader* shader);
 
 
@@ -97,6 +100,7 @@ tsekUniform* tsekG_set_uniform_name(tsekShader* shader, const char* name, void* 
 void tsekG_set_uniform_handle(tsekShader* shader, tsekUniform* uniform, void* data);
 
 
+void tsekG_read_texture(tsekTexture* texture, char* bitmap_filepath, uint32_t unity, int wrapS, int wrapT, int filterMin, int filterMax);
 void tsekG_create_texture(tsekTexture* texture, const char* bitmap, uint32_t unit, int wrapS, int wrapT, int filterMin, int filterMax);
 void tsekG_bind_texture(tsekTexture* texture, tsekShader* shader, char* name);
 void tsekG_set_texture_unit(tsekTexture* texture, uint32_t unit);

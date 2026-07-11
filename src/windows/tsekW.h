@@ -22,6 +22,9 @@ typedef struct {
 
   int keymap[255];
   tsekCallbacks callbacks;
+
+  WINDOWPLACEMENT saved_placement;
+  tsekWindowState prevState;
 } tsekWWindow;
 
 typedef struct {
@@ -56,6 +59,8 @@ bool tsekW_get_cursor_visible(tsekIWindow*);
 void tsekW_set_cursor_visible(tsekIWindow*, bool);
 
 void tsekW_swap_buffers(tsekIWindow*);
+
+void tsekW_request_window_state(tsekIWindow* window, tsekWindowState state);
 
 // messager
 

@@ -57,6 +57,8 @@ void tsekL_set_cursor_visible(tsekIWindow*, bool);
 
 void tsekL_swap_buffers(tsekIWindow*);
 
+void tsekL_request_window_state(tsekIWindow* window, tsekWindowState state);
+
 // messager
 
 void tsekL_get_window_param(tsekIWindow* window, tsekIWindowParam param, void* out);

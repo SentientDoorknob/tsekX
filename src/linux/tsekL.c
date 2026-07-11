@@ -646,6 +646,8 @@ void tsekL_get_window_param(tsekIWindow* window, tsekIWindowParam param, void* o
     }
   }
 
+void tsekL_request_window_state(tsekIWindow* window, tsekWindowState state) {
+}
 
 tsekLAddressInfo* Lget_address_info(tsekIAddressInfo* info) {
   return (tsekLAddressInfo*)info->inner;

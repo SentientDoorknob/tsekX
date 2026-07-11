@@ -1,5 +1,6 @@
 #include "tsekI.h"
 #include "tsekG.h"
+#include "tsekM.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -17,6 +18,8 @@ void tsekG_surface_init(tsekSurfaceContent* surfaceContent , tsekSurfaceType typ
   if (bind) {
     tsekG_surface_bind(surface);
   }
+
+  glEnable(GL_DEPTH_TEST);
 }
 
 void tsekG_surface_destroy(tsekSurface* surface) {
@@ -28,7 +31,6 @@ void tsekG_surface_destroy(tsekSurface* surface) {
 }
 
 void GtsekI_callback(tsekIWindow* window, uint32_t width, uint32_t height) {
-  printf("TSEKG CALLBACK\n");
   glViewport(0, 0, width, height);
 }
 
@@ -38,7 +40,14 @@ void tsekG_surface_register_resize(tsekSurface* surface) {
       tsekCallbacks* callbacks;
       tsekI_get_window_param(surface->content->tsekIWindow, CALLBACKS, &callbacks);
       callbacks->tsegsize = GtsekI_callback;
-      printf("Set Resize Callback\n");
+
+      POS d;
+      tsekI_get_window_param(surface->content->tsekIWindow, WINDOW_DIM, &d);
+
+      d.x += 1;
+      tsekI_set_window_param(surface->content->tsekIWindow, WINDOW_DIM, &d);
+      d.x -= 1;
+      tsekI_set_window_param(surface->content->tsekIWindow, WINDOW_DIM, &d);
     }
   }
 }
@@ -49,7 +58,7 @@ tsekSurface* tsekG_get_bound_surface() {
 
 void tsekG_clear(float r, float g, float b, float a) {
   glClearColor(r, g, b, a);
-  glClear(GL_COLOR_BUFFER_BIT);
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
 uint32_t Gget_size_glenum(GLenum type) {
@@ -80,10 +89,7 @@ void tsekG_describe_buffer(tsekBuffer* buffer, tsekFormat format) {
   for (int i = 0; i < format.count; i++) {
     tsekAttribute attribute = format.attributes[i];
 
-    printf("%d %d %d %d\n", attribute.type, attribute.count, attribute.normalised, attribute.location);
-
     if (attribute.type == GL_INT || attribute.type == GL_UNSIGNED_INT) {
-      printf("%d\n", GL_INT);
       glVertexAttribIPointer(
           attribute.location,
           attribute.count,
@@ -136,6 +142,45 @@ void tsekG_render_buffer(tsekBuffer* buffer, tsekShader* shader, GLenum primitiv
   glDrawElements(primitive, buffer->index_count, GL_UNSIGNED_INT, 0);
 }
 
+void tsekG_read_shader(tsekShader* shader, char* vertex_path, char* frag_path) {
+  shader->free = true;
+
+  FILE *vertf, *fragf;
+  long vsize, fsize;
+
+  vertf = fopen(vertex_path, "r");
+  if (!vertf) {
+    fprintf(stderr, "Couldn't find file %s\n", vertex_path);
+    return;
+  }
+
+  fseek(vertf, 0L, SEEK_END);
+  vsize = ftell(vertf);
+  fseek(vertf, 0L, SEEK_SET);
+
+  shader->vertex_src = (char*)calloc(vsize, sizeof(char));
+  fread(shader->vertex_src, sizeof(char), vsize, vertf);
+  fclose(vertf);
+  printf("Vertex: %s\n", shader->vertex_src);
+
+
+  fragf = fopen(frag_path, "r");
+  if (!fragf) {
+    fprintf(stderr, "Couldn't find file %s\n", frag_path);
+    return;
+  }
+
+  fseek(fragf, 0L, SEEK_END);
+  fsize = ftell(fragf);
+  fseek(fragf, 0L, SEEK_SET);
+
+  shader->fragment_src = (char*)calloc(fsize, sizeof(char));
+  fread(shader->fragment_src, sizeof(char), fsize, fragf);
+  fclose(fragf);
+  printf("Frag: %s\n", shader->fragment_src);
+}
+  
+
 uint32_t Gcompile_shader(GLenum type, const char* src) {
   uint32_t shader = glCreateShader(type);
   glShaderSource(shader, 1, &src, NULL);
@@ -163,9 +208,22 @@ void tsekG_compile_shader(tsekShader* shader) {
   glAttachShader(shader->program, fragment);
 
   glLinkProgram(shader->program);
+  GLint success;
+  glGetProgramiv(shader->program, GL_LINK_STATUS, &success);
+  if (!success)
+  {
+    char infoLog[1024];
+    glGetProgramInfoLog(shader->program, 1024, NULL, infoLog);
+    printf("Link error:\n%s\n", infoLog);
+  }
 
   glDeleteShader(vertex);
   glDeleteShader(fragment);
+
+  if (shader->free) {
+    free(shader->vertex_src);
+    free(shader->fragment_src);
+  }
 }
 
 void tsekG_set_uniform_handle(tsekShader* shader, tsekUniform* handle, void* data) {
@@ -178,10 +236,11 @@ void tsekG_set_uniform_handle(tsekShader* shader, tsekUniform* handle, void* dat
   if (loc == -1) return;
 
   if (handle->is_matrix) {
+    float transposed[handle->count];
     switch (handle->count) {
-      case 4: glUniformMatrix2fv(loc, 1, GL_FALSE, (float*)data); break;
-      case 9: glUniformMatrix3fv(loc, 1, GL_FALSE, (float*)data); break;
-      case 16: glUniformMatrix4fv(loc, 1, GL_FALSE, (float*)data); break;
+      case 4: tsekM_transpose(transposed, data, 2); glUniformMatrix2fv(loc, 1, GL_FALSE, (float*)transposed); break;
+      case 9: tsekM_transpose(transposed, data, 3); glUniformMatrix3fv(loc, 1, GL_FALSE, (float*)transposed); break;
+      case 16: tsekM_transpose(transposed, data, 4); glUniformMatrix4fv(loc, 1, GL_FALSE, (float*)transposed); break;
       default: fprintf(stderr, "Invalid Matrix Count: %d\n", handle->count);
     }
     return;
@@ -331,6 +390,31 @@ void tsekG_create_texture(tsekTexture *texture, const char *bitmap, uint32_t uni
   glGenerateMipmap(GL_TEXTURE_2D);
 
   free(raw_texture);
+}
+
+
+void tsekG_read_texture(tsekTexture* texture, char* bitmap_filepath, uint32_t unit, int wrapS, int wrapT, int filterMin, int filterMax) {
+
+  FILE* file;
+  long size;
+
+  file = fopen(bitmap_filepath, "r");
+  if (!file) {
+    fprintf(stderr, "Couldn't find file %s\n", bitmap_filepath);
+    return;
+  }
+
+  fseek(file, 0L, SEEK_END);
+  size = ftell(file);
+  fseek(file, 0L, SEEK_SET);
+
+  char* bitmap = (char*)calloc(size, sizeof(float));
+  fread(bitmap, sizeof(float), size, file);
+  fclose(file);
+
+  tsekG_create_texture(texture, bitmap, unit, wrapS, wrapT, filterMin, filterMax);
+
+  free(bitmap);
 }
 
 void tsekG_set_texture_unit(tsekTexture* texture, uint32_t unit) {

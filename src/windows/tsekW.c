@@ -273,6 +273,10 @@ void Wproc_resize(tsekIWindow* window, WPARAM wP, LPARAM lP) {
 
 LRESULT CALLBACK Wproc_window(HWND hwnd, UINT msg, WPARAM wP, LPARAM lP) {
 
+  if (hwnd == NULL) {
+    return 0;
+  }
+
   tsekIWindow* window;
 
   if (msg == WM_CREATE) { 
@@ -333,7 +337,9 @@ void Wregister_windowclass(tsekIWindowInfo* info) {
 
   WNDCLASSEXW windowClassInfo = {};
 
+#ifdef DEBUG_TSEKI
   printf("Preparing Windowclass with name: %s\n", info->wndClassName);
+#endif
 
   windowClassInfo.cbSize = sizeof(WNDCLASSEXW);
   windowClassInfo.style = CS_HREDRAW | CS_VREDRAW;
@@ -347,22 +353,30 @@ void Wregister_windowclass(tsekIWindowInfo* info) {
   windowClassInfo.hInstance = globalContext->hInstance;
   windowClassInfo.lpfnWndProc = Wproc_window;
 
+#ifdef DEBUG_TSEKI
   printf("Registering Window Class");
+#endif
 
   if (!RegisterClassExW(&windowClassInfo)) {
+#ifdef DEBUG_TSEKI
     fprintf(stderr, "Failed to register WNDCLASS\n");
+#endif
   }
 
 }
 
 void Wload_gl() {
+#ifdef DEBUG_TSEKI
   printf("About to open window... \n");
+#endif
 
   tsekIWindow* dummyWindow = malloc(sizeof(tsekIWindow));
   tsekW_create_dummy_window(dummyWindow);
   tsekWWindow* wwindow = Wget_window(dummyWindow);
 
+#ifdef DEBUG_TSEKI
   printf("Dummy window opened\n");
+#endif
 
   PIXELFORMATDESCRIPTOR pfd = {
     sizeof(PIXELFORMATDESCRIPTOR),
@@ -506,15 +520,21 @@ void tsekW_init(tsekIContext* context, tsekIWindow* window, tsekIWindowInfo* inf
     info = &defaultInfo;
   }
 
+#ifdef DEBUG_TSEKI
   printf("About to load opengl...\n");
+#endif
 
   Wload_gl();
 
+#ifdef DEBUG_TSEKI
   printf("Loaded Opengl\n");
+#endif
 
   Wregister_windowclass(info);
 
+#ifdef DEBUG_TSEKI
   printf("Window Class Registered\n");
+#endif
 
   tsekW_create_window(window, info);
 }
@@ -527,7 +547,9 @@ void tsekW_fill_context(tsekIContext* context, bool setGlobal) {
 
   LARGE_INTEGER start;
   QueryPerformanceCounter(&start);
+#ifdef DEBUG_TSEKI
   printf("%d\n", start.QuadPart);
+#endif
 
   QueryPerformanceCounter(&wcontext->time);
   QueryPerformanceCounter(&wcontext->fixed_time);
@@ -549,10 +571,14 @@ void tsekW_create_dummy_window(tsekIWindow* window) {
     window->inner = calloc(1, sizeof(tsekWWindow));
 
     Wregister_windowclass(&(tsekIWindowInfo){.wndClassName = L"DUMMY"});
+#ifdef DEBUG_TSEKI
     printf("WNDCLASS registered\n");
+#endif
     tsekWWindow* wwindow = Wget_window(window);
 
+#ifdef DEBUG_TSEKI
     printf("Running CreateWindowExW... \n");
+#endif
     wwindow->handle = CreateWindowExW(
         0,
         L"DUMMY",
@@ -569,7 +595,9 @@ void tsekW_create_dummy_window(tsekIWindow* window) {
     );
     wwindow->deviceContext = GetDC(wwindow->handle);
 
+#ifdef DEBUG_TSEKI
     printf("Window Created with error code: %d\n", GetLastError());
+#endif
 
     if (wwindow->handle == NULL) {
       printf("Failed to create Dummy Window\n");
@@ -602,6 +630,8 @@ void tsekW_create_window(tsekIWindow* window, tsekIWindowInfo* info) {
   }
 
   Wcreate_tsekG_context(&info->pixelFormat, window);
+  GetWindowPlacement(wwindow->handle, &wwindow->saved_placement);
+  wwindow->prevState = TSEKI_WINDOWED;
 
   ShowWindow(wwindow->handle, SW_SHOW);
 }
@@ -615,7 +645,49 @@ bool tsekW_get_closed_window(tsekIWindow* window) {
   return (!IsWindow(Wget_window(window)->handle));
 }
 
+bool Wis_window_fullscreeen(tsekWWindow* window)
+{
+    DWORD style = GetWindowLongPtr(window->handle, GWL_STYLE);
+
+    // Has no standard window decorations
+    bool borderless = (style & WS_OVERLAPPEDWINDOW) == 0;
+
+    MONITORINFO mi = { sizeof(mi) };
+    HMONITOR mon = MonitorFromWindow(window->handle, MONITOR_DEFAULTTONEAREST);
+    GetMonitorInfo(mon, &mi);
+
+    RECT wr;
+    GetWindowRect(window->handle, &wr);
+
+    bool coversMonitor =
+        wr.left   == mi.rcMonitor.left &&
+        wr.top    == mi.rcMonitor.top &&
+        wr.right  == mi.rcMonitor.right &&
+        wr.bottom == mi.rcMonitor.bottom;
+
+    return borderless && coversMonitor;
+}
+
+
+tsekWindowState Wget_window_state(tsekWWindow* window) {
+  if (Wis_window_fullscreeen(window)) {
+    return TSEKI_BORDERLESS;
+  }
+
+  if (IsZoomed(window->handle)) {
+    return TSEKI_WINDOWED_FULLSCREEN;
+  }
+
+  return TSEKI_WINDOWED;
+}
+
 bool tsekW_update_window(tsekIWindow* window) {
+  tsekWWindow* win = Wget_window(window);
+  if(win->prevState != Wget_window_state(win)) {
+    win->prevState = Wget_window_state(win);
+    win->callbacks.statechange(window, win->prevState);
+  }
+
   MSG msg;
   while (PeekMessageW(&msg, NULL, 0, 0, PM_REMOVE)) {
     TranslateMessage(&msg);
@@ -623,7 +695,6 @@ bool tsekW_update_window(tsekIWindow* window) {
   }
   return true;
 }
-
 
 double tsekW_get_time() {
   LARGE_INTEGER end;
@@ -735,7 +806,6 @@ void Wget_mouse_pos(tsekIWindow* window, void* out, POS relativeTo) {
   ((int*)out)[1] = mousepos.y - relativeTo.y;
 }
 
-
 void tsekW_get_window_param(tsekIWindow* window, tsekIWindowParam param, void* out) {
 
   tsekWWindow* wwindow = Wget_window(window);
@@ -792,6 +862,12 @@ void tsekW_get_window_param(tsekIWindow* window, tsekIWindowParam param, void* o
       POS clientpos;
       Wget_client_rect(window, &clientpos, true, false);
       Wget_mouse_pos(window, out, clientpos);
+      break;
+    }
+
+    case WINDOW_STATE: {
+      tsekWindowState* state = (tsekWindowState*)state;
+      *state = Wget_window_state(Wget_window(window));
       break;
     }
   }
@@ -878,6 +954,71 @@ void tsekW_set_window_param(tsekIWindow* window, tsekIWindowParam param, void* i
   }
 }
 
+
+void Wexit_borderless(tsekWWindow* window) {
+  SetWindowLongPtr(window->handle, GWL_STYLE,
+      GetWindowLongPtr(window->handle, GWL_STYLE) | WS_OVERLAPPEDWINDOW);
+
+  SetWindowPlacement(window->handle, &window->saved_placement);
+
+  SetWindowPos(window->handle,
+      NULL, 0, 0, 0, 0,
+      SWP_NOMOVE |
+        SWP_NOSIZE |
+        SWP_NOZORDER |
+        SWP_NOOWNERZORDER |
+        SWP_FRAMECHANGED);
+}
+
+void Wenter_borderless(tsekWWindow* window) { 
+  GetWindowPlacement(window->handle, &window->saved_placement);
+
+  MONITORINFO monitor_info = {sizeof(MONITORINFO)};
+  GetMonitorInfo(MonitorFromWindow(window->handle, MONITOR_DEFAULTTOPRIMARY),
+      &monitor_info);
+
+  SetWindowLongPtr(
+      window->handle,
+      GWL_STYLE,
+      GetWindowLongPtr(window->handle, GWL_STYLE) & ~WS_OVERLAPPEDWINDOW);
+
+  SetWindowPos(
+      window->handle,
+      HWND_TOP,
+      monitor_info.rcMonitor.left,
+      monitor_info.rcMonitor.top,
+      monitor_info.rcMonitor.right - monitor_info.rcMonitor.left,
+      monitor_info.rcMonitor.bottom - monitor_info.rcMonitor.top,
+      SWP_FRAMECHANGED);
+}
+
+void tsekW_request_window_state(tsekIWindow* window, tsekWindowState state) {
+  // all cases: convert to windowed first for standardisation.
+  tsekWWindow* win = Wget_window(window);
+  tsekWindowState current_state = Wget_window_state(win);
+
+  if (state == current_state) {
+    return;
+  }
+
+  if (current_state == TSEKI_WINDOWED_FULLSCREEN) {
+    ShowWindow(win->handle, SW_RESTORE);
+  }
+
+  if (current_state == TSEKI_BORDERLESS) {
+    Wexit_borderless(win);
+  }
+
+  // now: enter desired state 
+
+  if (state == TSEKI_BORDERLESS) {
+    Wenter_borderless(win);
+  }
+
+  if (state == TSEKI_WINDOWED_FULLSCREEN) {
+    ShowWindow(win->handle, SW_MAXIMIZE);
+  }
+}
 
 
 tsekWAddressInfo* Wget_address_info(tsekIAddressInfo* info) {
@@ -1019,13 +1160,17 @@ void tsekW_TLS_init(tsekITLSContext* context) {
 
 int tsekW_TLS_connect(tsekITLSSocket* tls_socket, char* host, tsekISocket* socket, tsekITLSContext* context) {
 
+#ifdef DEBUG_TSEKI
   printf("Connecting...\n");
+#endif
 
   tls_socket->inner = malloc(sizeof(tsekWTLSSocket));
   tsekWTLSSocket* tlsock = Wget_tls_socket(tls_socket);
   tlsock->socket = socket;
 
+#ifdef DEBUG_TSEKI
   printf("TLS hostname: %s\n", host);
+#endif
 
   SCHANNEL_CRED credentials = {
     .dwVersion = SCHANNEL_CRED_VERSION,
@@ -1042,7 +1187,9 @@ int tsekW_TLS_connect(tsekITLSSocket* tls_socket, char* host, tsekISocket* socke
     return -1;
   }
 
+#ifdef DEBUG_TSEKI
   printf("Credentials Aquired\n");
+#endif
 
   tlsock->used = tlsock->recieved = tlsock->available = 0;
   tlsock->decrypted_data = NULL;
@@ -1050,11 +1197,15 @@ int tsekW_TLS_connect(tsekITLSSocket* tls_socket, char* host, tsekISocket* socke
   int success = 0;
   CtxtHandle* handshake_context = 0;
 
+#ifdef DEBUG_TSEKI
   printf("Starting Loop");
+#endif
 
   for (;;) {
 
+#ifdef DEBUG_TSEKI
     printf("Describing Buffers\n");
+#endif
 
     SecBuffer incoming_buffers[2] = {};
 
@@ -1081,7 +1232,9 @@ int tsekW_TLS_connect(tsekITLSSocket* tls_socket, char* host, tsekISocket* socke
 
     DWORD flags = ISC_REQ_USE_SUPPLIED_CREDS | ISC_REQ_ALLOCATE_MEMORY | ISC_REQ_CONFIDENTIALITY | ISC_REQ_REPLAY_DETECT | ISC_REQ_SEQUENCE_DETECT | ISC_REQ_STREAM;
 
+#ifdef DEBUG_TSEKI
     printf("Attempting Handshake\n");
+#endif
 
     SECURITY_STATUS status;
     status = InitializeSecurityContextA(
@@ -1098,7 +1251,9 @@ int tsekW_TLS_connect(tsekITLSSocket* tls_socket, char* host, tsekISocket* socke
         &flags,
         NULL);
 
+#ifdef DEBUG_TSEKI
     printf("Security Context Status %x\n", status);
+#endif
 
     handshake_context = &tlsock->context;
 
@@ -1113,7 +1268,9 @@ int tsekW_TLS_connect(tsekITLSSocket* tls_socket, char* host, tsekISocket* socke
 
     // Case 1: Handshake Successful!
     if (status == SEC_E_OK) {
+#ifdef DEBUG_TSEKI
       printf("Handshake Successful!!\n");
+#endif
       break;
     }
     // Case 2: Server requires client certificate (uncommon)
@@ -1220,7 +1377,9 @@ int tsekW_TLS_send(tsekITLSSocket* socket, char* message, int length) {
       return -1;
     }
 
+#ifdef DEBUG_TSEKI
     printf("Encryption Successful!\n");
+#endif
 
     int total_used_bytes = send_buffer_sections[0].cbBuffer + send_buffer_sections[1].cbBuffer + send_buffer_sections[2].cbBuffer;
     int total_sent_bytes = 0;
@@ -1247,7 +1406,9 @@ int tsekW_TLS_recv(tsekITLSSocket* socket, char* buffer, int length) {
   // 0 -> disconnect  + -> bytes sent  - -> error code 
   int result = 0;
   tsekWTLSSocket* tlsock = Wget_tls_socket(socket);
+#ifdef DEBUG_TSEKI
   printf("Recving\n");
+#endif
 
   while (length > 0) {
 
@@ -1260,7 +1421,9 @@ int tsekW_TLS_recv(tsekITLSSocket* socket, char* buffer, int length) {
       buffer += bytes_to_read;
       length -= bytes_to_read;
       result += bytes_to_read;
+#ifdef DEBUG_TSEKI
       printf("Pushing Decrypted Data\n");
+#endif
 
       // All decrypted data read (:
       if (bytes_to_read == tlsock->available) {

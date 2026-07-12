@@ -164,6 +164,8 @@ typedef enum {
   CALLBACKS,
 
   WINDOW_STATE,
+
+  MOUSE_DELTA,
 } tsekIWindowParam;
 
 typedef struct {

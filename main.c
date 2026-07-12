@@ -39,8 +39,8 @@ float camera_front[3] = {0, 0, -1};
 float pitch = 0;
 float yaw = -90.0f;
 
-float speed = 0.1f;
-float mouse_sensitivity = 0.1f;
+float speed = 10.0f;
+float mouse_sensitivity = 0.15f;
 
 float last_frame = 0;
 float this_frame = 0;
@@ -137,19 +137,18 @@ void GraphicsSetup() {
   tsekG_set_uniform(&shader, "perspective", GL_FLOAT, 16, true, &perspective_matrix);
 }
 
-int prev_cursorpos[2];
-int cursorpos[2];
-
 void GetMovement() {
   int* keymap;
   tsekI_get_window_param(&window, KEYMAP, &keymap);
-  tsekI_get_window_param(&window, CURSORPOS_DESKTOP, &cursorpos);
+
+  float mouse_deltas[2] = {};
+  tsekI_get_window_param(&window, MOUSE_DELTA, &mouse_deltas);
 
   float dt = this_frame - last_frame;
   last_frame = this_frame;
 
-  yaw += (cursorpos[0] - prev_cursorpos[0]) * mouse_sensitivity;
-  pitch += (prev_cursorpos[1] - cursorpos[1]) * mouse_sensitivity;
+  yaw += mouse_deltas[0] * mouse_sensitivity;
+  pitch -= mouse_deltas[1] * mouse_sensitivity;
 
   if (pitch > 89.0f) {
     pitch =  89.0f;
@@ -166,8 +165,8 @@ void GetMovement() {
   tsekM_local_basis(right, dummy, dummy, camera_front);
 
   float front_move[3];
-  tsekM_scale(front_move, camera_front, speed, 3);
-  tsekM_scale(right, right, speed, 3);
+  tsekM_scale(front_move, camera_front, speed * dt, 3);
+  tsekM_scale(right, right, speed * dt, 3);
 
   if (keymap[TSEK_W]) {
     tsekM_add(camera_position, camera_position, front_move, 3);
@@ -178,10 +177,6 @@ void GetMovement() {
   } if (keymap[TSEK_D]) {
     tsekM_sub(camera_position, camera_position, right, 3);
   }
-
-  int mouse_pos[2] = {100, 100};
-  if (mouse_locked) tsekI_set_window_param(&window, CURSORPOS_DESKTOP, &mouse_pos);
-  tsekI_get_window_param(&window, CURSORPOS_DESKTOP, &prev_cursorpos);
 }
 
 void Update() {
@@ -263,7 +258,6 @@ void Setup() {
 
   int mouse_pos[2] = {100, 100};
   tsekI_set_window_param(&window, CURSORPOS_DESKTOP, &mouse_pos);
-  memcpy(prev_cursorpos, cursorpos, 2);
 
   while (!tsekI_get_closed_window(&window)) {
     double start = tsekI_get_time();

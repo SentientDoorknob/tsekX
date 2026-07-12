@@ -271,6 +271,16 @@ void Wproc_resize(tsekIWindow* window, WPARAM wP, LPARAM lP) {
   }
 }
 
+void Wproc_mouse(tsekIWindow* window, WPARAM wP, LPARAM lP) {
+  tsekWWindow* wwindow = Wget_window(window);
+
+  RAWINPUT input;
+  UINT size = sizeof(RAWINPUT);
+  GetRawInputData((HRAWINPUT)lP, RID_INPUT, &input, &size, sizeof(RAWINPUTHEADER));
+  wwindow->mouse_deltas[0] += input.data.mouse.lLastX;
+  wwindow->mouse_deltas[1] += input.data.mouse.lLastY;
+}
+
 LRESULT CALLBACK Wproc_window(HWND hwnd, UINT msg, WPARAM wP, LPARAM lP) {
 
   if (hwnd == NULL) {
@@ -320,6 +330,11 @@ LRESULT CALLBACK Wproc_window(HWND hwnd, UINT msg, WPARAM wP, LPARAM lP) {
       break;
     } case (WM_MBUTTONUP): {
       Wproc_mbup(window, TSEK_MBM);
+      break;
+    }
+
+    case (WM_INPUT): {
+      Wproc_mouse(window, wP, lP);
       break;
     }
   }
@@ -633,6 +648,15 @@ void tsekW_create_window(tsekIWindow* window, tsekIWindowInfo* info) {
   GetWindowPlacement(wwindow->handle, &wwindow->saved_placement);
   wwindow->prevState = TSEKI_WINDOWED;
 
+  RAWINPUTDEVICE rid = {
+    .usUsagePage = 0x01,
+    .usUsage = 0x02,
+    .dwFlags = 0,
+    .hwndTarget = wwindow->handle,
+  };
+
+  RegisterRawInputDevices(&rid, 1, sizeof(rid));
+
   ShowWindow(wwindow->handle, SW_SHOW);
 }
 
@@ -687,6 +711,8 @@ bool tsekW_update_window(tsekIWindow* window) {
     win->prevState = Wget_window_state(win);
     win->callbacks.statechange(window, win->prevState);
   }
+
+  win->mouse_deltas[0] = 0; win->mouse_deltas[1] = 0;
 
   MSG msg;
   while (PeekMessageW(&msg, NULL, 0, 0, PM_REMOVE)) {
@@ -866,8 +892,14 @@ void tsekW_get_window_param(tsekIWindow* window, tsekIWindowParam param, void* o
     }
 
     case WINDOW_STATE: {
-      tsekWindowState* state = (tsekWindowState*)state;
+      tsekWindowState* state = (tsekWindowState*)out;
       *state = Wget_window_state(Wget_window(window));
+      break;
+    }
+
+    case MOUSE_DELTA: {
+      float* deltas = (float*)out;
+      memcpy(deltas, Wget_window(window)->mouse_deltas, 2 * sizeof(float));
       break;
     }
   }

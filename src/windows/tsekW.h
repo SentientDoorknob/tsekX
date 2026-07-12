@@ -25,6 +25,8 @@ typedef struct {
 
   WINDOWPLACEMENT saved_placement;
   tsekWindowState prevState;
+
+  float mouse_deltas[2];
 } tsekWWindow;
 
 typedef struct {

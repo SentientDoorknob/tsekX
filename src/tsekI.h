@@ -139,13 +139,13 @@ typedef enum {
     TSEK_MBM,
     TSEK_MB4,
     TSEK_MB5,
-} tsekKeyCode;
+} tsekIKeyCode;
 
 typedef enum {
   TSEKI_WINDOWED,
   TSEKI_WINDOWED_FULLSCREEN,
   TSEKI_BORDERLESS
-} tsekWindowState;
+} tsekIWindowState;
 
 typedef enum {
   WINDOW_RECT,
@@ -184,7 +184,7 @@ typedef struct {
   uint16_t depth_bits;
   uint16_t stencil_bits;
   uint8_t samples;
-} tsekPixelFormat;
+} tsekIPixelFormat;
 
 typedef struct {
   const wchar_t* title;
@@ -199,28 +199,28 @@ typedef struct {
   uint32_t style;
   uint32_t extendedStyle; 
 
-  tsekPixelFormat pixelFormat;
+  tsekIPixelFormat pixelFormat;
 
   uint32_t minMaxDims[4];
 } tsekIWindowInfo;
 
 typedef struct {
-  void (*keydown)(tsekIWindow*, tsekKeyCode);
-  void (*keytype)(tsekIWindow*, tsekKeyCode);
-  void (*keyup)(tsekIWindow*, tsekKeyCode);
-  void (*mbdown)(tsekIWindow*, tsekKeyCode);
-  void (*mbup)(tsekIWindow*, tsekKeyCode);
-  void (*kstate)(tsekIWindow*, tsekKeyCode, bool);
+  void (*keydown)(tsekIWindow*, tsekIKeyCode);
+  void (*keytype)(tsekIWindow*, tsekIKeyCode);
+  void (*keyup)(tsekIWindow*, tsekIKeyCode);
+  void (*mbdown)(tsekIWindow*, tsekIKeyCode);
+  void (*mbup)(tsekIWindow*, tsekIKeyCode);
+  void (*kstate)(tsekIWindow*, tsekIKeyCode, bool);
 
   void (*tsegsize)(tsekIWindow*, uint32_t width, uint32_t height);
   void (*size)(tsekIWindow*, uint32_t width, uint32_t height);
 
-  void (*statechange)(tsekIWindow*, tsekWindowState);
+  void (*statechange)(tsekIWindow*, tsekIWindowState);
 } tsekCallbacks;
 
 typedef struct {
   uint32_t x, y, width, height;
-} POS;
+} tsekIPos;
 
 void tsekI_init(tsekIContext*, tsekIWindow*, tsekIWindowInfo*, wchar_t* defualtTitle, bool createGlobalContext, bool console);
 
@@ -245,7 +245,7 @@ void tsekI_set_cursor_visible(tsekIWindow*, bool);
 
 void tsekI_swap_buffers(tsekIWindow*);
 
-void tsekI_request_window_state(tsekIWindow* window, tsekWindowState state);
+void tsekI_request_window_state(tsekIWindow* window, tsekIWindowState state);
 // messager
 
 void tsekI_get_window_param(tsekIWindow* window, tsekIWindowParam param, void* out);

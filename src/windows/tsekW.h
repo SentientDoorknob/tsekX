@@ -24,7 +24,7 @@ typedef struct {
   tsekCallbacks callbacks;
 
   WINDOWPLACEMENT saved_placement;
-  tsekWindowState prevState;
+  tsekIWindowState prevState;
 
   float mouse_deltas[2];
 } tsekWWindow;
@@ -62,7 +62,7 @@ void tsekW_set_cursor_visible(tsekIWindow*, bool);
 
 void tsekW_swap_buffers(tsekIWindow*);
 
-void tsekW_request_window_state(tsekIWindow* window, tsekWindowState state);
+void tsekW_request_window_state(tsekIWindow* window, tsekIWindowState state);
 
 // messager
 

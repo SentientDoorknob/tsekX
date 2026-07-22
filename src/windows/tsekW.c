@@ -173,7 +173,7 @@ tsekIWindow* Wproc_create(HWND hwnd, UINT msg, WPARAM wP, LPARAM lP) {
   return window;
 }
 
-tsekKeyCode Wget_keycode(WPARAM wP, LPARAM lP) {
+tsekIKeyCode Wget_keycode(WPARAM wP, LPARAM lP) {
   switch (wP)
   {
     case VK_SHIFT:
@@ -210,7 +210,7 @@ void Wproc_keydown(tsekIWindow* window, WPARAM wP, LPARAM lP) {
   
   tsekWWindow* wwindow = Wget_window(window);
 
-  tsekKeyCode key = Wget_keycode(wP, lP);
+  tsekIKeyCode key = Wget_keycode(wP, lP);
 
   if (wwindow->callbacks.keydown && wwindow->keymap[key] == false) {
     wwindow->callbacks.keydown(window, key);
@@ -227,7 +227,7 @@ void Wproc_keyup(tsekIWindow* window, WPARAM wP, LPARAM lP) {
 
   tsekWWindow* wwindow = Wget_window(window);
 
-  tsekKeyCode key = Wget_keycode(wP, lP);
+  tsekIKeyCode key = Wget_keycode(wP, lP);
 
   if (wwindow->callbacks.keyup) {
     wwindow->callbacks.keyup(window, key);
@@ -236,7 +236,7 @@ void Wproc_keyup(tsekIWindow* window, WPARAM wP, LPARAM lP) {
   wwindow->keymap[key] = false;
 }
 
-void Wproc_mbdown(tsekIWindow* window, tsekKeyCode code) {
+void Wproc_mbdown(tsekIWindow* window, tsekIKeyCode code) {
 
   tsekWWindow* wwindow = Wget_window(window);
 
@@ -247,7 +247,7 @@ void Wproc_mbdown(tsekIWindow* window, tsekKeyCode code) {
   wwindow->keymap[code] = true;
 }
 
-void Wproc_mbup(tsekIWindow* window, tsekKeyCode code) {
+void Wproc_mbup(tsekIWindow* window, tsekIKeyCode code) {
 
   tsekWWindow* wwindow = Wget_window(window);
 
@@ -425,7 +425,7 @@ void Wload_gl() {
   tsekW_destroy_window(dummyWindow);
 }
 
-void Wbuild_wgl_attribs(const tsekPixelFormat* pf, int* outAttribs) {
+void Wbuild_wgl_attribs(const tsekIPixelFormat* pf, int* outAttribs) {
     int i = 0;
 
     #define ADD(a, b) outAttribs[i++] = (a); outAttribs[i++] = (b)
@@ -453,7 +453,7 @@ void Wbuild_wgl_attribs(const tsekPixelFormat* pf, int* outAttribs) {
     #undef ADD
 }
 
-void Wcreate_tsekG_context(tsekPixelFormat* format, tsekIWindow* window) {
+void Wcreate_tsekG_context(tsekIPixelFormat* format, tsekIWindow* window) {
   tsekWWindow* wwindow = Wget_window(window);
 
   int pixelFormatAttribs[32];
@@ -514,7 +514,7 @@ void tsekW_init(tsekIContext* context, tsekIWindow* window, tsekIWindowInfo* inf
 
   tsekW_fill_context(context, createGlobalContext);
 
-  tsekPixelFormat defaultPixelFormat = {
+  tsekIPixelFormat defaultPixelFormat = {
     .r_bits = 8, .g_bits = 8, .b_bits = 8, .a_bits = 8,
     .depth_bits = 24, .stencil_bits = 8, .samples = 4 };
 
@@ -693,7 +693,7 @@ bool Wis_window_fullscreeen(tsekWWindow* window)
 }
 
 
-tsekWindowState Wget_window_state(tsekWWindow* window) {
+tsekIWindowState Wget_window_state(tsekWWindow* window) {
   if (Wis_window_fullscreeen(window)) {
     return TSEKI_BORDERLESS;
   }
@@ -783,7 +783,7 @@ void Wget_window_rect(tsekIWindow* window, void* out, bool pos, bool dims) {
   RECT rect;
   GetWindowRect(Wget_window(window)->handle, &rect);
 
-  POS result = {
+  tsekIPos result = {
     .x = rect.left,
     .y = rect.top,
     .width = rect.right - rect.left,
@@ -791,12 +791,12 @@ void Wget_window_rect(tsekIWindow* window, void* out, bool pos, bool dims) {
   };
 
   if (pos) {
-    ((POS*)out)->x = result.x;
-    ((POS*)out)->y = result.y;
+    ((tsekIPos*)out)->x = result.x;
+    ((tsekIPos*)out)->y = result.y;
   }
   if (dims) {
-    ((POS*)out)->width = result.width;
-    ((POS*)out)->height = result.height;
+    ((tsekIPos*)out)->width = result.width;
+    ((tsekIPos*)out)->height = result.height;
   }
 }
 
@@ -809,7 +809,7 @@ void Wget_client_rect(tsekIWindow* window, void* out, bool pos, bool dims) {
 
   int FrameExtentsH = (window_rect.bottom - window_rect.top) - client_rect.bottom;
 
-  POS result = {
+  tsekIPos result = {
     .x = window_rect.left,
     .y = window_rect.top + FrameExtentsH,
     .width = window_rect.right - window_rect.left,
@@ -817,16 +817,16 @@ void Wget_client_rect(tsekIWindow* window, void* out, bool pos, bool dims) {
   };
 
   if (pos) {
-    ((POS*)out)->x = result.x;
-    ((POS*)out)->y = result.y;
+    ((tsekIPos*)out)->x = result.x;
+    ((tsekIPos*)out)->y = result.y;
   }
   if (dims) {
-    ((POS*)out)->width = result.width;
-    ((POS*)out)->height = result.height;
+    ((tsekIPos*)out)->width = result.width;
+    ((tsekIPos*)out)->height = result.height;
   }
 }
 
-void Wget_mouse_pos(tsekIWindow* window, void* out, POS relativeTo) {
+void Wget_mouse_pos(tsekIWindow* window, void* out, tsekIPos relativeTo) {
   POINT mousepos;
   GetCursorPos(&mousepos);
 
@@ -877,24 +877,24 @@ void tsekW_get_window_param(tsekIWindow* window, tsekIWindowParam param, void* o
     }
 
     case CURSORPOS_DESKTOP: {
-      Wget_mouse_pos(window, out, (POS){0, 0, 0, 0});
+      Wget_mouse_pos(window, out, (tsekIPos){0, 0, 0, 0});
       break;
     }
     case CURSORPOS_WINDOW: {
-      POS windowpos;
+      tsekIPos windowpos;
       Wget_window_rect(window, &windowpos, true, false);
       Wget_mouse_pos(window, out, windowpos);
       break;
     }
     case CURSORPOS_CLIENT: {
-      POS clientpos;
+      tsekIPos clientpos;
       Wget_client_rect(window, &clientpos, true, false);
       Wget_mouse_pos(window, out, clientpos);
       break;
     }
 
     case WINDOW_STATE: {
-      tsekWindowState* state = (tsekWindowState*)out;
+      tsekIWindowState* state = (tsekIWindowState*)out;
       *state = Wget_window_state(Wget_window(window));
       break;
     }
@@ -908,13 +908,13 @@ void tsekW_get_window_param(tsekIWindow* window, tsekIWindowParam param, void* o
 }
 
 void Wset_window_rect(tsekIWindow* window, void* in, bool pos, bool dims) {
-    POS* input = (POS*)in;
+    tsekIPos* input = (tsekIPos*)in;
     if (pos) SetWindowPos(Wget_window(window)->handle, HWND_TOP, input->x, input->y, input->width, input->height, SWP_NOSIZE);
     if (dims) SetWindowPos(Wget_window(window)->handle, HWND_TOP, input->x, input->y, input->width, input->height, SWP_NOMOVE);
 }
 
 void Wset_client_rect(tsekIWindow* window, void* in, bool pos, bool dims) {
-    POS* input = (POS*)in;
+    tsekIPos* input = (tsekIPos*)in;
     RECT window_rect, client_rect;
     GetWindowRect(Wget_window(window)->handle, &window_rect); GetClientRect(Wget_window(window)->handle, &client_rect);
     int frameExtentsH = (window_rect.bottom - window_rect.top) - client_rect.bottom;
@@ -973,14 +973,14 @@ void tsekW_set_window_param(tsekIWindow* window, tsekIWindowParam param, void* i
     }
     case CURSORPOS_WINDOW: {
       int* pos = (int*) in;
-      POS relativeTo;
+      tsekIPos relativeTo;
       Wget_window_rect(window, &relativeTo, true, false);
       SetCursorPos(pos[0] + relativeTo.x, pos[1] + relativeTo.y);
       break;
     }
     case CURSORPOS_CLIENT: {
       int* pos = (int*) in;
-      POS relativeTo;
+      tsekIPos relativeTo;
       Wget_client_rect(window, &relativeTo, true, false);
       SetCursorPos(pos[0] + relativeTo.x, pos[1] + relativeTo.y);
       break;
@@ -1026,10 +1026,10 @@ void Wenter_borderless(tsekWWindow* window) {
       SWP_FRAMECHANGED);
 }
 
-void tsekW_request_window_state(tsekIWindow* window, tsekWindowState state) {
+void tsekW_request_window_state(tsekIWindow* window, tsekIWindowState state) {
   // all cases: convert to windowed first for standardisation.
   tsekWWindow* win = Wget_window(window);
-  tsekWindowState current_state = Wget_window_state(win);
+  tsekIWindowState current_state = Wget_window_state(win);
 
   if (state == current_state) {
     return;

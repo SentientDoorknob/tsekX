@@ -326,7 +326,7 @@ void tsekI_socket_set_nonblocking(tsekISocket* socket, int mode) {
 #endif
 }
 
-void tsekI_request_window_state(tsekIWindow* window, tsekWindowState state) {
+void tsekI_request_window_state(tsekIWindow* window, tsekIWindowState state) {
 #ifdef PLATFORM_LINUX
   tsekL_request_window_state(window, state);
 #elif defined(PLATFORM_WINDOWS)

@@ -709,7 +709,9 @@ bool tsekW_update_window(tsekIWindow* window) {
   tsekWWindow* win = Wget_window(window);
   if(win->prevState != Wget_window_state(win)) {
     win->prevState = Wget_window_state(win);
-    win->callbacks.statechange(window, win->prevState);
+    if (win->callbacks.statechange) { 
+      win->callbacks.statechange(window, win->prevState);
+    }
   }
 
   win->mouse_deltas[0] = 0; win->mouse_deltas[1] = 0;

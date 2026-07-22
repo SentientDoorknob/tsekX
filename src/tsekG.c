@@ -158,9 +158,10 @@ void tsekG_read_shader(tsekShader* shader, char* vertex_path, char* frag_path) {
   vsize = ftell(vertf);
   fseek(vertf, 0L, SEEK_SET);
 
-  shader->vertex_src = (char*)calloc(vsize, sizeof(char));
+  shader->vertex_src = (char*)calloc(vsize + 1, sizeof(char));
   fread(shader->vertex_src, sizeof(char), vsize, vertf);
   fclose(vertf);
+  shader->vertex_src[vsize] = '\0';
   printf("Vertex: %s\n", shader->vertex_src);
 
 
@@ -174,9 +175,11 @@ void tsekG_read_shader(tsekShader* shader, char* vertex_path, char* frag_path) {
   fsize = ftell(fragf);
   fseek(fragf, 0L, SEEK_SET);
 
-  shader->fragment_src = (char*)calloc(fsize, sizeof(char));
+  shader->fragment_src = (char*)calloc(fsize + 1, sizeof(char));
   fread(shader->fragment_src, sizeof(char), fsize, fragf);
+  shader->fragment_src[fsize] = '\0';
   fclose(fragf);
+
   printf("Frag: %s\n", shader->fragment_src);
 }
   

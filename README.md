@@ -8,13 +8,25 @@ A handle to a window. Contains a pointer to the platform-specific data for a cer
 ### tsekIContext
 A handle to a context. Contains a pointer to the platform-specific data for a global context. Again, do not attempt to access this yourself, use defined platform-generic functions for this purpose. One tsekIContext is bound at a time - this will soon be changed to be thread safe.
 
-### tsekKeyCode
-An enum containing a member for each key on a keyboard - redefined as to be platform agnostic. It includes toggles and mouse buttons.
+### tsekIKeyCode
+An enum containing a member for each key on a keyboard - redefined as to be platform agnostic. It includes toggles and mouse buttons. Prefixed TSEK_[KEY].
+
+### tsekIWindowState
+An enum describing window fullscreen-state. Options are:
+
+`TSEKI_WINDOWED`
+Doesnt occupy full screen, respects taskbar etc. Default on Linux.
+
+`TSEKI_WINDOWED_FULLSCREEN`
+Occupies full screen, respects taskbar etc. Not supported on Linux.
+
+`TSEKI_BORDERLESS`
+Occupies full screen, overtakes taskbar etc. Supported on Linux.
 
 ### tsekIWindowParam
 An enum containing parameters that can be set or retrieved for a specific window. More details in the `tsekI_get_parameter` and `tsekI_set_parameter` sections.
 
-### tsekPixelFormat
+### tsekIPixelFormat
 A struct to contain a preference for the data stored in each pixel of the screen. Note that data "suggested" in this way is not set, but is instead used to rank available pixel formats and choose the best. The members are:  
 
 `uint16_t r_bits, g_bits, b_bits, a_bits`
@@ -47,31 +59,43 @@ Used in defining windows style in certain window managers.
 `tsekPixelFormat pixelFormat`
 The preferred pixel format.
 
-### tsekCallbacks
-Defines functions to be called when certain things change about a window. They are:
+### tsekICallbacks
+Defines functions to be called upon specified window events. All pass the window in question as the first argument. They are:
 
 `void (*keydown)(tsekIWindow*, tsekKeyCode);`
-Called on keydown.
+Called on keydown. Passes pressed key.
 
 `void (*keytype)(tsekIWindow*, tsekKeyCode);`
-Called on keytype; the repeated call when a key is held down.
+Called on keytype; the repeated call when a key is held down. Passes pressed key.
 
 `void (*keyup)(tsekIWindow*, tsekKeyCode);`
-Called on keyup.
+Called on keyup. Passes released key.
 
 `void (*mbdown)(tsekIWindow*, tsekKeyCode);`
-Called on mouse button down.
+Called on mouse button down. Passes pressed (mouse) button.
 
 `void (*mbup)(tsekIWindow*, tsekKeyCode);`
-Called on mouse button up.
+Called on mouse button up. Passes pressed (mouse) button.
 
 `void (*kstate)(tsekIWindow*, tsekKeyCode, bool);`
-Called on key state (caps lock, num lock, scroll lock) toggle.
+Called on key state (caps lock, num lock, scroll lock) toggle. Passes key and state.
 
 `void (*size)(tsekIWindow*, uint32_t width, uint32_t height);`
-Called on window resize.
+Called on window resize. Passes width and height.
 
 `void (*tsegsize)(tsekIWindow*, uint32_t width, uint32_t height);`
 Called on window resize, reserved for graphics APIs.
+
+`void (*statechange)(tsekIWindow*, tsekIWindowState);`
+Called on window state change. Passes window state.
+
+### tsekIPos
+Utility struct for storing position and size information of a rect. Contains:
+
+`uint32_t x, y`
+The coordinates of the top-left corner of the rectangle (in pixels).
+
+`uint32_t width, height`
+The width and height of the rectangle in pixels.
 
 ## Functions

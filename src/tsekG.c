@@ -430,3 +430,75 @@ void tsekG_set_border_color(tsekTexture* texture, float* color) {
   glBindTexture(GL_TEXTURE_2D, texture->texture);
   glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, color);
 }
+
+void tsekG_create_framebuffer(tsekGFramebuffer* buffer) {
+  glGenFramebuffers(1, &buffer->fbo);
+}
+
+void tsekG_create_framebuffer_attachment(tsekGFramebuffer* buffer, tsekGAttachmentType type, int width, int height, int wrapS, int wrapT, int filterMin, int filterMax) {
+  tsekTexture t;
+  t.unit = 0;
+  t.wrapS = wrapS;
+  t.wrapT = wrapT;
+  t.filterMin = filterMin;
+  t.filterMax = filterMax;
+  t.width = width;
+  t.height = height;
+  t.mipmaps = 0;
+
+  glGenTextures(1, &t.texture);
+  glBindTexture(GL_TEXTURE_2D, t.texture);
+  glBindFramebuffer(GL_FRAMEBUFFER, buffer->fbo);
+  
+  if (type == TSEKG_COLOR) {
+    t.channels = 4;
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + buffer->color_count, GL_TEXTURE_2D, t.texture, 0);
+    memcpy(buffer->color + buffer->color_count, &t, sizeof(tsekTexture));
+    buffer->color_count++;
+  }
+  else if (type == TSEKG_DEPTH) {
+    t.channels = 3;
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, width, height, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, NULL);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, t.texture, 0);
+    memcpy(&buffer->depth, &t, sizeof(tsekTexture));
+  }
+  else if (type == TSEKG_STENCIL) {
+    t.channels = 1;
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_STENCIL_INDEX, width, height, 0, GL_STENCIL_INDEX, GL_UNSIGNED_BYTE, NULL);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, t.texture, 0);
+    memcpy(&buffer->stencil, &t, sizeof(tsekTexture));
+  }
+  else if (type == TSEKG_DEPTH_STENCIL) {
+    t.channels = 4;
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH24_STENCIL8, width, height, 0, GL_DEPTH24_STENCIL8, GL_UNSIGNED_INT_24_8, NULL);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_TEXTURE_2D, t.texture, 0);
+    memcpy(&buffer->depth, &t, sizeof(tsekTexture));
+    memset(&buffer->stencil, 0, sizeof(tsekTexture));
+  }
+
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrapT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrapS);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filterMin);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filterMax);
+}
+
+void tsekG_bind_framebuffer(tsekGFramebuffer* buffer) {
+  if (buffer == NULL) {
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    return;
+  }
+
+  glBindFramebuffer(GL_FRAMEBUFFER, buffer->fbo);
+
+  if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    fprintf(stderr, "Framebuffer Incomplete\n");
+    return;
+  }
+}
+
+void tsekG_destroy_framebuffer(tsekGFramebuffer* buffer) {
+  glDeleteFramebuffers(1, &buffer->fbo);
+}
+

@@ -89,6 +89,7 @@ typedef struct {
   tsekTexture color[TSEKG_MAX_COLOR_ATTACHMENTS];
   tsekTexture depth;
   tsekTexture stencil;
+  int color_count;
 } tsekGFramebuffer;
 
 void tsekG_surface_init(tsekSurfaceContent*, tsekSurfaceType, tsekSurface*, bool);
@@ -122,7 +123,8 @@ void tsekG_set_texture_unit(tsekTexture* texture, uint32_t unit);
 void tsekG_set_border_color(tsekTexture* texture, float* color);
 
 void tsekG_create_framebuffer(tsekGFramebuffer* buffer);
-void tsekG_create_framebuffer_attachment(tsekGFramebuffer* buffer, tsekGAttachmentType type, int wrapS, int wrapT, int filterMin, int filterMax);
+void tsekG_create_framebuffer_attachment(tsekGFramebuffer* buffer, tsekGAttachmentType type, int width, int height, int wrapS, int wrapT, int filterMin, int filterMax);
 void tsekG_bind_framebuffer(tsekGFramebuffer* buffer);
+void tsekG_destroy_framebuffer(tsekGFramebuffer* buffer);
 
 #endif

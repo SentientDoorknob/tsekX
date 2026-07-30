@@ -1,4 +1,5 @@
 
+#include <math.h>
 #ifdef PLATFORM_WINDOWS
 
 #include "tsekW.h"
@@ -348,12 +349,24 @@ HINSTANCE Wget_hInstance() {
   return GetModuleHandle(NULL);
 }
 
+void Wget_class_name(int id, wchar_t** name) {
+  *name = malloc(20 * sizeof(wchar_t));
+  swprintf(*name, 20, L"%d", id);
+}
+
 void Wregister_windowclass(tsekIWindowInfo* info) {
 
   WNDCLASSEXW windowClassInfo = {};
 
 #ifdef DEBUG_TSEKI
-  printf("Preparing Windowclass with name: %s\n", info->wndClassName);
+  printf("Preparing Windowclass\n");
+#endif
+
+  wchar_t* className;
+  Wget_class_name(info->classId, &className);
+
+#ifdef DEBUG_TSEKI
+  wprintf(L"With name: %s\n", className);
 #endif
 
   windowClassInfo.cbSize = sizeof(WNDCLASSEXW);
@@ -364,7 +377,7 @@ void Wregister_windowclass(tsekIWindowInfo* info) {
   windowClassInfo.hCursor = LoadCursor(NULL, IDC_ARROW);
   windowClassInfo.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
   windowClassInfo.lpszMenuName = NULL;
-  windowClassInfo.lpszClassName = info->wndClassName;
+  windowClassInfo.lpszClassName = className,
   windowClassInfo.hInstance = globalContext->hInstance;
   windowClassInfo.lpfnWndProc = Wproc_window;
 
@@ -378,6 +391,7 @@ void Wregister_windowclass(tsekIWindowInfo* info) {
 #endif
   }
 
+  free(className);
 }
 
 void Wload_gl() {
@@ -524,11 +538,7 @@ void tsekW_init(tsekIContext* context, tsekIWindow* window, tsekIWindowInfo* inf
     .x = 100, .y = 100,
     .borderWidth = 0,
     .classId = 0,
-    .wndClassName = L"Default Class Name",
-    .style = WS_OVERLAPPEDWINDOW,
-    .extendedStyle = 0,
     .pixelFormat = defaultPixelFormat,
-    .minMaxDims = {0, 0, 0, 0}
   };
 
   if (!info) {
@@ -585,7 +595,7 @@ void tsekW_create_dummy_window(tsekIWindow* window) {
     HINSTANCE hInstance = globalContext->hInstance;
     window->inner = calloc(1, sizeof(tsekWWindow));
 
-    Wregister_windowclass(&(tsekIWindowInfo){.wndClassName = L"DUMMY"});
+    Wregister_windowclass(&(tsekIWindowInfo){});
 #ifdef DEBUG_TSEKI
     printf("WNDCLASS registered\n");
 #endif
@@ -623,11 +633,15 @@ void tsekW_create_window(tsekIWindow* window, tsekIWindowInfo* info) {
   window->inner = calloc(1, sizeof(tsekWWindow));
   tsekWWindow* wwindow = Wget_window(window);
 
+  wchar_t* className;
+  Wget_class_name(info->classId, &className);
+  wprintf(L"%s\n", className);
+
   wwindow->handle = CreateWindowExW(
-      info->extendedStyle,
-      info->wndClassName,
+      0,
+      className,
       info->title,
-      info->style,
+      WS_OVERLAPPEDWINDOW,
       info->x, info->y,
       info->width, info->height,
       NULL, NULL,
@@ -637,7 +651,6 @@ void tsekW_create_window(tsekIWindow* window, tsekIWindowInfo* info) {
 
   wwindow->deviceContext = GetDC(wwindow->handle);
 
-  memcpy(wwindow->minMaxDims, info->minMaxDims, sizeof(info->minMaxDims));
 
   if (!wwindow->handle) {
     DWORD err = GetLastError();
@@ -658,6 +671,7 @@ void tsekW_create_window(tsekIWindow* window, tsekIWindowInfo* info) {
   RegisterRawInputDevices(&rid, 1, sizeof(rid));
 
   ShowWindow(wwindow->handle, SW_SHOW);
+  free(className);
 }
 
 void tsekW_destroy_window(tsekIWindow* window) {
@@ -665,7 +679,7 @@ void tsekW_destroy_window(tsekIWindow* window) {
   free(window->inner);
 }
 
-bool tsekW_get_closed_window(tsekIWindow* window) {
+bool tsekW_is_window_closed(tsekIWindow* window) {
   return (!IsWindow(Wget_window(window)->handle));
 }
 
@@ -983,6 +997,11 @@ void tsekW_set_window_param(tsekIWindow* window, tsekIWindowParam param, void* i
       tsekIPos relativeTo;
       Wget_client_rect(window, &relativeTo, true, false);
       SetCursorPos(pos[0] + relativeTo.x, pos[1] + relativeTo.y);
+      break;
+    }
+    case WINDOW_STATE: {
+      tsekIWindowState* state = (tsekIWindowState*)in;
+      tsekW_request_window_state(window, *state);
       break;
     }
   }

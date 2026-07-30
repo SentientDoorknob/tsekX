@@ -88,7 +88,7 @@ tsekSurface* tsekG_get_bound_surface();
 void tsekG_clear(float r, float g, float b, float a);
 
 void tsekG_describe_buffer(tsekBuffer* buffer, tsekFormat format);
-void tsekG_fill_buffer(tsekBuffer* buffer, void* vertices, uint32_t vertices_size, uint32_t* indices, uint32_t index_count);
+void tsekG_fill_buffer(tsekBuffer* buffer, void* vertices, uint32_t vertices_size, uint32_t* indices, uint32_t index_size);
 void tsekG_render_buffer(tsekBuffer* buffer, tsekShader* shader, GLenum primitive);
 
 void tsekG_read_shader(tsekShader* shader, char* vertex_path, char* frag_path);

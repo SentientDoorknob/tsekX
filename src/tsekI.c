@@ -55,11 +55,11 @@ void tsekI_destroy_window(tsekIWindow *window) {
 #endif
 }
 
-bool tsekI_get_closed_window(tsekIWindow *window) {
+bool tsekI_is_window_closed(tsekIWindow *window) {
 #ifdef PLATFORM_LINUX
-  return tsekL_get_closed_window(window);
+  return tsekL_is_window_closed(window);
 #elif defined(PLATFORM_WINDOWS)
-  return tsekW_get_closed_window(window);
+  return tsekW_is_window_closed(window);
 #endif
 }
 

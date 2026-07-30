@@ -9,7 +9,7 @@ LDFLAGS_WINDOWS = -lopengl32 -lgdi32 -lwinmm -lws2_32 -lsecur32 -lcrypt32
 LDFLAGS = 
 
 DEPS = src/tsekI.h src/tsekG.h src/linux/tsekL.h src/windows/tsekW.h libs/glad.h src/tsekM.h
-OBJS = main.o src/tsekI.o src/tsekG.o src/linux/tsekL.o src/windows/tsekW.o libs/glad.o src/tsekM.o
+OBJS = main.o src/tsekI.o src/tsekG.o src/linux/tsekL.o src/windows/tsekW.o libs/glad.o src/tsekM.o src/tsekF.o
 
 DEPS_LINUX = 
 DEPS_WINDOWS = 

@@ -41,7 +41,7 @@ void tsekG_surface_register_resize(tsekSurface* surface) {
       tsekI_get_window_param(surface->content->tsekIWindow, CALLBACKS, &callbacks);
       callbacks->tsegsize = GtsekI_callback;
 
-      POS d;
+      tsekIPos d;
       tsekI_get_window_param(surface->content->tsekIWindow, WINDOW_DIM, &d);
 
       d.x += 1;
@@ -162,8 +162,6 @@ void tsekG_read_shader(tsekShader* shader, char* vertex_path, char* frag_path) {
   fread(shader->vertex_src, sizeof(char), vsize, vertf);
   fclose(vertf);
   shader->vertex_src[vsize] = '\0';
-  printf("Vertex: %s\n", shader->vertex_src);
-
 
   fragf = fopen(frag_path, "r");
   if (!fragf) {
@@ -179,10 +177,7 @@ void tsekG_read_shader(tsekShader* shader, char* vertex_path, char* frag_path) {
   fread(shader->fragment_src, sizeof(char), fsize, fragf);
   shader->fragment_src[fsize] = '\0';
   fclose(fragf);
-
-  printf("Frag: %s\n", shader->fragment_src);
 }
-  
 
 uint32_t Gcompile_shader(GLenum type, const char* src) {
   uint32_t shader = glCreateShader(type);

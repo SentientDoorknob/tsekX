@@ -422,7 +422,7 @@ void tsekL_swap_buffers(tsekIWindow* window) {
   glXSwapBuffers(globalContext->display, Lget_window(window)->window);
 }
 
-bool tsekL_get_closed_window(tsekIWindow* window) {
+bool tsekL_is_window_closed(tsekIWindow* window) {
   return Lget_window(window)->isOpen;
 }
 

@@ -48,7 +48,7 @@ void tsekW_create_dummy_window(tsekIWindow* window);
 void tsekW_create_window(tsekIWindow* window, tsekIWindowInfo* info);
 void tsekW_destroy_window(tsekIWindow* window);
 
-bool tsekW_get_closed_window(tsekIWindow*);
+bool tsekW_is_window_closed(tsekIWindow*);
 bool tsekW_update_window(tsekIWindow* window);
 
 double tsekW_get_time();

@@ -43,7 +43,7 @@ void tsekL_create_dummy_window(tsekIWindow* window);
 void tsekL_create_window(tsekIWindow* window, tsekIWindowInfo* info);
 void tsekL_destroy_window(tsekIWindow* window);
 
-bool tsekL_get_closed_window(tsekIWindow*);
+bool tsekL_is_window_closed(tsekIWindow*);
 bool tsekL_update_window(tsekIWindow* window);
 
 double tsekL_get_time();

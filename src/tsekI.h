@@ -190,18 +190,9 @@ typedef struct {
   const wchar_t* title;
   uint32_t width, height;
   int32_t x, y;
-
   uint32_t borderWidth;
-
   uint32_t classId;
-  const wchar_t* wndClassName;
-
-  uint32_t style;
-  uint32_t extendedStyle; 
-
   tsekIPixelFormat pixelFormat;
-
-  uint32_t minMaxDims[4];
 } tsekIWindowInfo;
 
 typedef struct {
@@ -231,7 +222,7 @@ void tsekI_create_dummy_window(tsekIWindow* window);
 void tsekI_create_window(tsekIWindow* window, tsekIWindowInfo* info);
 void tsekI_destroy_window(tsekIWindow* window);
 
-bool tsekI_get_closed_window(tsekIWindow*);
+bool tsekI_is_window_closed(tsekIWindow*);
 bool tsekI_update_window(tsekIWindow* window);
 
 double tsekI_get_time();
@@ -245,7 +236,6 @@ void tsekI_set_cursor_visible(tsekIWindow*, bool);
 
 void tsekI_swap_buffers(tsekIWindow*);
 
-void tsekI_request_window_state(tsekIWindow* window, tsekIWindowState state);
 // messager
 
 void tsekI_get_window_param(tsekIWindow* window, tsekIWindowParam param, void* out);
@@ -257,10 +247,6 @@ void tsekI_set_window_param(tsekIWindow* window, tsekIWindowParam param, void* i
 typedef struct {
   int handle;
 } tsekISocket;
-
-typedef struct {
-  void* inner;
-} tsekIConnection;
 
 typedef struct {
   void* inner;

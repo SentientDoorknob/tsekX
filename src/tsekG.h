@@ -37,6 +37,7 @@ typedef struct {
 } tsekUniform;
 
 #define TSEKG_MAX_ATTRIBUTE_SIZE 32
+#define TSEKG_MAX_COLOR_ATTACHMENTS 4
 
 typedef struct {
   tsekAttribute attributes[TSEKG_MAX_ATTRIBUTE_SIZE];
@@ -76,6 +77,20 @@ typedef struct {
   int mipmaps;
 } tsekTexture;
 
+typedef enum {
+  TSEKG_COLOR,
+  TSEKG_DEPTH,
+  TSEKG_STENCIL,
+  TSEKG_DEPTH_STENCIL
+} tsekGAttachmentType;
+
+typedef struct {
+  uint32_t fbo;
+  tsekTexture color[TSEKG_MAX_COLOR_ATTACHMENTS];
+  tsekTexture depth;
+  tsekTexture stencil;
+} tsekGFramebuffer;
+
 void tsekG_surface_init(tsekSurfaceContent*, tsekSurfaceType, tsekSurface*, bool);
 void tsekG_surface_destroy(tsekSurface* surface);
 
@@ -105,5 +120,9 @@ void tsekG_create_texture(tsekTexture* texture, const char* bitmap, uint32_t uni
 void tsekG_bind_texture(tsekTexture* texture, tsekShader* shader, char* name);
 void tsekG_set_texture_unit(tsekTexture* texture, uint32_t unit);
 void tsekG_set_border_color(tsekTexture* texture, float* color);
+
+void tsekG_create_framebuffer(tsekGFramebuffer* buffer);
+void tsekG_create_framebuffer_attachment(tsekGFramebuffer* buffer, tsekGAttachmentType type, int wrapS, int wrapT, int filterMin, int filterMax);
+void tsekG_bind_framebuffer(tsekGFramebuffer* buffer);
 
 #endif

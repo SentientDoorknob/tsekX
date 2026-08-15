@@ -26,12 +26,12 @@ void tsekM_orthographic(float *out, float left, float right, float bottom, float
 
 float tsekM_determinant(float* matrix, uint32_t dim);
 
-void tsekM_invert2(float* out, float* mat);
-void tsekM_invert3(float* out, float* mat);
-void tsekM_invert4(float* out, float* mat);
+int tsekM_invert(float* out, float* mat, int width);
 void tsekM_transpose(float* out, float* mat, int dim);
 
-void tsekM_display_matrix(float* matrix, uint32_t dim);
+void tsekM_eliminate(float* out, float* mat, int width, int height);
+
+void tsekM_display_matrix(float* matrix, int width, int height);
 void tsekM_display_vector(float* vector, uint32_t dim);
 
 void tsekM_local_basis(float* outx, float* outy, float* outz, float* inz);
@@ -39,5 +39,6 @@ void tsekM_look_at(float* out, float* pos, float* target);
 void tsekM_direction_euler(float* out, float pitch, float yaw);
 
 float tsekM_radians(float angle);
+float tsekM_clamp(float x, float min, float max);
 
 #endif

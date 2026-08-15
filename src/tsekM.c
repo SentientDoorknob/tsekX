@@ -1,9 +1,136 @@
 #include "tsekM.h"
+#include "tsekG.h"
 #include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+
+void Mswap_elements(float* mat, int x1, int y1, int x2, int y2, int width) {
+  float* first = mat + y1 * width + x1;
+  float* second = mat + y2 * width + x2;
+
+  float temp = *first;
+  *first = *second;
+  *second = temp;
+}
+
+void Mswap_rows(float* mat, int row1, int row2, int width) {
+  for (int i = 0; i < width; i++) {
+    Mswap_elements(mat, i, row1, i, row2, width);
+  }
+}
+
+void Mscale_row(float* mat, int row, float scalar, int width) {
+  for (int i = 0; i < width; i++) {
+    *(mat + row * width + i) *= scalar;
+  }
+}
+
+void Maugment_row(float* mat, int from, int to, float scale, int width) {
+  float from_row[width];
+
+  tsekM_scale(from_row, mat + from * width, scale, width);
+  tsekM_add(mat + to * width, from_row, mat + to * width, width);
+}
+
+void Meliminate(float* mat, int variable, int equation, int width) {
+      float to = mat[equation * width + variable];
+      float from = mat[variable * width + variable];
+
+      printf("%d --- %.2f / %.2f ---> %d\n", variable, to, from, equation);
+      Maugment_row(mat, variable, equation, -to/from, width);
+
+      //printf("%d -- x%.2f --> %d\n", from, scale, to);
+      //tsekM_display_matrix(mat, width, height);
+}
+
+void tsekM_eliminate(float* out, float* mat, int width, int height) {
+
+  // Step 0: Create a working copy of the matrix.
+
+  float result[width * height];
+  memcpy(result, mat, width * height * sizeof(float));
+
+  // Step 1: Find and store pivots, performing forward elimination via augmentation at the same time.
+
+  int max_rank = fmin(width, height);
+  int pivots[max_rank * 2] = {};
+  int pivot_count = 0;
+
+  int row = 0;
+  int column = 0;
+
+  while (row < height && column < width) {
+
+    float* curr = result + row * width + column;
+
+    // Do the current coordinates represent a valid pivot?
+    if (*curr == 0) {
+
+      // Search down for non-zero column
+
+      int search_row = row;
+      for (;;) {
+        search_row++;
+
+        if (search_row == height) {
+          column++;
+          break;
+        }
+
+        if (result[search_row * width + column] != 0) {
+          Mswap_rows(result, row, search_row, width);
+          break;
+        }
+      }
+
+      continue;
+    }
+
+    // We can now guarantee the current coordinates represent a valid pivot.
+    // Now, we log the pivot and scale the row to make it 1.
+
+    pivot_count++;
+    pivots[2 * pivot_count - 2] = row;
+    pivots[2 * pivot_count - 1] = column;
+
+    Mscale_row(result, row, 1/(*curr), width);
+
+    // Forwards Elimination
+
+    for (int elim_row = row + 1; elim_row < height; elim_row++) {
+      float* elim = result + elim_row * width + column;
+      float scale = -*elim;
+      Maugment_row(result, row, elim_row, scale, width);
+    }
+
+    row++;
+    column++;
+  }
+
+#ifdef TSEKM_DEBUG
+  for (int i = 0; i < pivot_count; i++) {
+    printf("Pivot at (%d, %d)\n", pivots[2 * i], pivots[2 * i + 1]);
+  }
+#endif
+
+  // Step 2: Use stored pivots for Backwards Substitution.
+
+  for (int i = pivot_count - 1; i >= 0; i--) {
+    int row = pivots[2 * i];
+    int column = pivots[2 * i + 1];
+
+    for (int elim_row = row - 1; elim_row >= 0; elim_row--) {
+      float* elim = result + elim_row * width + column;
+      float scale = -*elim;
+
+      Maugment_row(result, row, elim_row, scale, width);
+    }
+  }
+
+  memcpy(out, result, width * height * sizeof(float));
+}
 
 void tsekM_mul(float* out, float* mat1, float* mat2, uint32_t dim) {
   float result[16] = {};
@@ -205,9 +332,38 @@ void tsekM_orthographic(float *out, float left, float right, float bottom, float
 
 float tsekM_determinant(float* matrix, uint32_t dim);
 
-void tsekM_invert2(float* out, float* mat);
-void tsekM_invert3(float* out, float* mat);
-void tsekM_invert4(float* out, float* mat);
+int tsekM_invert(float* out, float* mat, int dim) {
+  float augmented[2 * dim * dim];
+
+  float* curr = augmented;
+  for (int row = 0; row < dim; row++) {
+    for (int i = 0; i < dim; i++) {
+      *curr = mat[row * dim + i];
+      curr++;
+    }
+
+    for (int i = 0; i < dim; i++) {
+      *curr = (row == i) ? 1 : 0;
+      curr++;
+    }
+  }
+
+  tsekM_display_matrix(augmented, 2 * dim, dim);
+  tsekM_eliminate(augmented, augmented, 2 * dim, dim);
+  tsekM_display_matrix(augmented, 2 * dim, dim);
+
+  for (int i = 0; i < dim; i++) {
+    if (augmented[i * dim * 2 + i] != 1) {
+      return -1;
+    }
+  }
+
+  for (int row = 0; row < dim; row++) {
+    memcpy(out + row * dim, augmented + row * 2 * dim + dim, dim * sizeof(float));
+  }
+
+  return 0;
+}
 
 void tsekM_transpose(float* out, float* mat, int dim) {
   float res[dim * dim] = {};
@@ -229,12 +385,12 @@ void tsekM_display_vector(float* vector, uint32_t dim) {
   printf("|_     _|\n");
 }
 
-void tsekM_display_matrix(float* matrix, uint32_t dim) {
+void tsekM_display_matrix(float* matrix, int width, int height) {
   printf("\n");
-  for (int i = 0; i < dim; i++) {
+  for (int i = 0; i < height; i++) {
     printf("| ");
-    for (int j = 0; j < dim; j++) {
-      printf("%-6.2f ", matrix[i * dim + j]);
+    for (int j = 0; j < width; j++) {
+      printf("%-6.2f ", matrix[i * width + j]);
     }
     printf("|\n");
   }
@@ -279,3 +435,6 @@ void tsekM_direction_euler(float* out, float pitch, float yaw) {
   out[2] = cos(pitchr) * sin(yawr);
 }
 
+float tsekM_clamp(float x, float mi, float ma) {
+  return fmax(fmin(x, ma), mi);
+}

@@ -1,144 +1,145 @@
-#ifndef TSEKI_H
-
-#define TSEKI_H 
+#pragma once
 
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdlib.h>
 
-#define MAX_KEYMAP_SIZE 256
-#define TARGET_FRAMERATE 60
+#define TSEKI_MAX_KEYMAP_SIZE 256
+#define TSEKI_TARGET_FRAMERATE 60
+
+#ifdef TSEKX_DEBUG
+#define TSEKI_DEBUG
+#endif
 
 typedef enum {
     // Letters
-    TSEK_NONE = 0,
-    TSEK_A = 1,
-    TSEK_B,
-    TSEK_C,
-    TSEK_D,
-    TSEK_E,
-    TSEK_F,
-    TSEK_G,
-    TSEK_H,
-    TSEK_I,
-    TSEK_J,
-    TSEK_K,
-    TSEK_L,
-    TSEK_M,
-    TSEK_N,
-    TSEK_O,
-    TSEK_P,
-    TSEK_Q,
-    TSEK_R,
-    TSEK_S,
-    TSEK_T,
-    TSEK_U,
-    TSEK_V,
-    TSEK_W,
-    TSEK_X,
-    TSEK_Y,
-    TSEK_Z,
+    TSEKI_NONE = 0,
+    TSEKI_A = 1,
+    TSEKI_B,
+    TSEKI_C,
+    TSEKI_D,
+    TSEKI_E,
+    TSEKI_F,
+    TSEKI_G,
+    TSEKI_H,
+    TSEKI_I,
+    TSEKI_J,
+    TSEKI_K,
+    TSEKI_L,
+    TSEKI_M,
+    TSEKI_N,
+    TSEKI_O,
+    TSEKI_P,
+    TSEKI_Q,
+    TSEKI_R,
+    TSEKI_S,
+    TSEKI_T,
+    TSEKI_U,
+    TSEKI_V,
+    TSEKI_W,
+    TSEKI_X,
+    TSEKI_Y,
+    TSEKI_Z,
 
     // Numbers
-    TSEK_0,
-    TSEK_1,
-    TSEK_2,
-    TSEK_3,
-    TSEK_4,
-    TSEK_5,
-    TSEK_6,
-    TSEK_7,
-    TSEK_8,
-    TSEK_9,
+    TSEKI_0,
+    TSEKI_1,
+    TSEKI_2,
+    TSEKI_3,
+    TSEKI_4,
+    TSEKI_5,
+    TSEKI_6,
+    TSEKI_7,
+    TSEKI_8,
+    TSEKI_9,
 
     // Symbols
-    TSEK_MINUS,
-    TSEK_EQUAL,
-    TSEK_LEFTBRACKET,
-    TSEK_RIGHTBRACKET,
-    TSEK_BACKSLASH,
-    TSEK_SEMICOLON,
-    TSEK_APOSTROPHE,
-    TSEK_GRAVE,
-    TSEK_COMMA,
-    TSEK_PERIOD,
-    TSEK_SLASH,
+    TSEKI_MINUS,
+    TSEKI_EQUAL,
+    TSEKI_LEFTBRACKET,
+    TSEKI_RIGHTBRACKET,
+    TSEKI_BACKSLASH,
+    TSEKI_SEMICOLON,
+    TSEKI_APOSTROPHE,
+    TSEKI_GRAVE,
+    TSEKI_COMMA,
+    TSEKI_PERIOD,
+    TSEKI_SLASH,
 
     // Control keys
-    TSEK_ENTER,
-    TSEK_ESCAPE,
-    TSEK_BACKSPACE,
-    TSEK_TAB,
-    TSEK_SPACE,
-    TSEK_CAPSLOCK,
+    TSEKI_ENTER,
+    TSEKI_ESCAPE,
+    TSEKI_BACKSPACE,
+    TSEKI_TAB,
+    TSEKI_SPACE,
+    TSEKI_CAPSLOCK,
 
     // Function keys
-    TSEK_F1,
-    TSEK_F2,
-    TSEK_F3,
-    TSEK_F4,
-    TSEK_F5,
-    TSEK_F6,
-    TSEK_F7,
-    TSEK_F8,
-    TSEK_F9,
-    TSEK_F10,
-    TSEK_F11,
-    TSEK_F12,
+    TSEKI_F1,
+    TSEKI_F2,
+    TSEKI_F3,
+    TSEKI_F4,
+    TSEKI_F5,
+    TSEKI_F6,
+    TSEKI_F7,
+    TSEKI_F8,
+    TSEKI_F9,
+    TSEKI_F10,
+    TSEKI_F11,
+    TSEKI_F12,
 
     // Arrow keys
-    TSEK_LEFT,
-    TSEK_UP,
-    TSEK_RIGHT,
-    TSEK_DOWN,
+    TSEKI_LEFT,
+    TSEKI_UP,
+    TSEKI_RIGHT,
+    TSEKI_DOWN,
 
     // Modifier keys
-    TSEK_LEFTSHIFT,
-    TSEK_RIGHTSHIFT,
-    TSEK_LEFTCTRL,
-    TSEK_RIGHTCTRL,
-    TSEK_LEFTALT,
-    TSEK_RIGHTALT,
-    TSEK_LEFTMETA,
-    TSEK_RIGHTMETA,
+    TSEKI_LEFTSHIFT,
+    TSEKI_RIGHTSHIFT,
+    TSEKI_LEFTCTRL,
+    TSEKI_RIGHTCTRL,
+    TSEKI_LEFTALT,
+    TSEKI_RIGHTALT,
+    TSEKI_LEFTMETA,
+    TSEKI_RIGHTMETA,
 
     // Numpad keys
-    TSEK_NUMPAD0,
-    TSEK_NUMPAD1,
-    TSEK_NUMPAD2,
-    TSEK_NUMPAD3,
-    TSEK_NUMPAD4,
-    TSEK_NUMPAD5,
-    TSEK_NUMPAD6,
-    TSEK_NUMPAD7,
-    TSEK_NUMPAD8,
-    TSEK_NUMPAD9,
-    TSEK_NUMPADDECIMAL,
-    TSEK_NUMPADENTER,
-    TSEK_NUMPADADD,
-    TSEK_NUMPADSUBTRACT,
-    TSEK_NUMPADMULTIPLY,
-    TSEK_NUMPADDIVIDE,
+    TSEKI_NUMPAD0,
+    TSEKI_NUMPAD1,
+    TSEKI_NUMPAD2,
+    TSEKI_NUMPAD3,
+    TSEKI_NUMPAD4,
+    TSEKI_NUMPAD5,
+    TSEKI_NUMPAD6,
+    TSEKI_NUMPAD7,
+    TSEKI_NUMPAD8,
+    TSEKI_NUMPAD9,
+    TSEKI_NUMPADDECIMAL,
+    TSEKI_NUMPADENTER,
+    TSEKI_NUMPADADD,
+    TSEKI_NUMPADSUBTRACT,
+    TSEKI_NUMPADMULTIPLY,
+    TSEKI_NUMPADDIVIDE,
 
     // Editing/navigation keys
-    TSEK_INSERT,
-    TSEK_DELETE,
-    TSEK_HOME,
-    TSEK_END,
-    TSEK_PAGEUP,
-    TSEK_PAGEDOWN,
+    TSEKI_INSERT,
+    TSEKI_DELETE,
+    TSEKI_HOME,
+    TSEKI_END,
+    TSEKI_PAGEUP,
+    TSEKI_PAGEDOWN,
 
     // Other keys
-    TSEK_PRINTSCREEN,
-    TSEK_SCROLLLOCK,
-    TSEK_PAUSE,
+    TSEKI_PRINTSCREEN,
+    TSEKI_SCROLLLOCK,
+    TSEKI_PAUSE,
 
     // Buttons
-    TSEK_MBL,
-    TSEK_MBR,
-    TSEK_MBM,
-    TSEK_MB4,
-    TSEK_MB5,
+    TSEKI_MBL,
+    TSEKI_MBR,
+    TSEKI_MBM,
+    TSEKI_MB4,
+    TSEKI_MB5,
 } tsekIKeyCode;
 
 typedef enum {
@@ -148,24 +149,20 @@ typedef enum {
 } tsekIWindowState;
 
 typedef enum {
-  WINDOW_RECT,
-  WINDOW_POS,
-  WINDOW_DIM,
+  TSEKI_WINDOW_RECT,
+  TSEKI_CLIENT_RECT,
 
-  CLIENT_RECT,
-  CLIENT_POS,
-  CLIENT_DIM,
+  TSEKI_CURSORPOS_DESKTOP,
+  TSEKI_CURSORPOS_WINDOW,
+  TSEKI_CURSORPOS_CLIENT,
 
-  CURSORPOS_DESKTOP,
-  CURSORPOS_WINDOW,
-  CURSORPOS_CLIENT,
+  TSEKI_KEYMAP,
+  TSEKI_KEYMAP_REFERENCE,
 
-  KEYMAP,
-  CALLBACKS,
+  TSEKI_CALLBACKS,
 
-  WINDOW_STATE,
-
-  MOUSE_DELTA,
+  TSEKI_WINDOW_STATE,
+  TSEKI_MOUSE_DELTA,
 } tsekIWindowParam;
 
 typedef struct {
@@ -196,29 +193,29 @@ typedef struct {
 } tsekIWindowInfo;
 
 typedef struct {
-  void (*keydown)(tsekIWindow*, tsekIKeyCode);
-  void (*keytype)(tsekIWindow*, tsekIKeyCode);
-  void (*keyup)(tsekIWindow*, tsekIKeyCode);
-  void (*mbdown)(tsekIWindow*, tsekIKeyCode);
-  void (*mbup)(tsekIWindow*, tsekIKeyCode);
-  void (*kstate)(tsekIWindow*, tsekIKeyCode, bool);
+  void (*key_down)(tsekIWindow*, tsekIKeyCode);
+  void (*key_type)(tsekIWindow*, tsekIKeyCode);
+  void (*key_up)(tsekIWindow*, tsekIKeyCode);
+  void (*key_state)(tsekIWindow*, tsekIKeyCode, bool);
 
-  void (*tsegsize)(tsekIWindow*, uint32_t width, uint32_t height);
+  void (*mb_down)(tsekIWindow*, tsekIKeyCode);
+  void (*mb_up)(tsekIWindow*, tsekIKeyCode);
+
+  void (*tsekG_size)(tsekIWindow*, uint32_t width, uint32_t height);
   void (*size)(tsekIWindow*, uint32_t width, uint32_t height);
 
-  void (*statechange)(tsekIWindow*, tsekIWindowState);
-} tsekCallbacks;
+  void (*window_state_change)(tsekIWindow*, tsekIWindowState);
+} tsekICallbacks;
 
 typedef struct {
   uint32_t x, y, width, height;
-} tsekIPos;
+} tsekIRect;
 
-void tsekI_init(tsekIContext*, tsekIWindow*, tsekIWindowInfo*, wchar_t* defualtTitle, bool createGlobalContext, bool console);
+void tsekI_init(tsekIContext*, tsekIWindow*, tsekIWindowInfo*, wchar_t* default_title);
 
-void tsekI_fill_context(tsekIContext* context, bool setGlobal);
+void tsekI_fill_context(tsekIContext* context);
 void tsekI_destroy_context(tsekIContext* context);
 
-void tsekI_create_dummy_window(tsekIWindow* window);
 void tsekI_create_window(tsekIWindow* window, tsekIWindowInfo* info);
 void tsekI_destroy_window(tsekIWindow* window);
 
@@ -238,24 +235,24 @@ void tsekI_swap_buffers(tsekIWindow*);
 
 // messager
 
-void tsekI_get_window_param(tsekIWindow* window, tsekIWindowParam param, void* out);
-void tsekI_set_window_param(tsekIWindow* window, tsekIWindowParam param, void* in);
+void tsekI_get_param(tsekIWindow* window, tsekIWindowParam param, void* out);
+void tsekI_set_param(tsekIWindow* window, tsekIWindowParam param, void* in);
 
 
 // networking
 
 typedef struct {
-  int handle;
+  uint32_t handle;
 } tsekISocket;
 
 typedef struct {
   void* inner;
 } tsekIAddressInfo;
 
-void tsekI_network_init();
-void tsekI_network_cleanup();
+void tsekI_init_network();
+void tsekI_cleanup_network();
 
-void tsekI_get_address_info(char* url, int port, tsekIAddressInfo* info);
+void tsekI_get_address_info(char* url, uint32_t port, tsekIAddressInfo* info);
 void tsekI_display_addrinfo(tsekIAddressInfo* info);
 void tsekI_destroy_address_info(tsekIAddressInfo* info);
 void tsekI_socket_create(tsekISocket* socket);
@@ -264,7 +261,7 @@ void tsekI_socket_close(tsekISocket* socket);
 // server
 
 void tsekI_socket_bind(tsekISocket* socket, tsekIAddressInfo* address);
-void tsekI_socket_listen(tsekISocket* socket, int backlog);
+void tsekI_socket_listen(tsekISocket* socket, uint32_t backlog);
 void tsekI_socket_accept(tsekISocket* server, tsekISocket* client, tsekIAddressInfo* address);
 
 // client 
@@ -273,11 +270,19 @@ void tsekI_socket_connect(tsekISocket* socket, tsekIAddressInfo* address);
 
 // messaging
 
-int tsekI_socket_send(tsekISocket* socket, char* message, int length, bool OOB, bool dontroute);
-int tsekI_socket_recv(tsekISocket* socket, char* message, int length, bool OOB, bool peek, bool waitall);
+typedef enum {
+    TSEKI_SOCKET_NONE = 0,
+    TSEKI_SOCKET_OOB = 1 << 0,
+    TSEKI_SOCKET_DONTROUTE = 1 << 1,
+    TSEKI_SOCKET_PEEK = 1 << 2,
+    TSEKI_SOCKET_WAITALL = 1 << 3,
+} tsekISocketFlags;
 
-int tsekI_socket_geterror(tsekISocket* socket);
-void tsekI_socket_set_nonblocking(tsekISocket* socket, int mode);
+int32_t tsekI_socket_send(tsekISocket* socket, char* message, uint32_t length, uint32_t flags);
+int32_t tsekI_socket_recv(tsekISocket* socket, char* message, uint32_t length, uint32_t flags);
+
+int32_t tsekI_socket_geterror(tsekISocket* socket);
+void tsekI_socket_set_nonblocking(tsekISocket* socket, uint32_t mode);
 
 // TLS 
 
@@ -290,12 +295,10 @@ typedef struct {
 } tsekITLSSocket;
 
 void tsekI_TLS_init(tsekITLSContext* context);
-int tsekI_TLS_connect(tsekITLSSocket* tls_socket, char* host, tsekISocket* socket, tsekITLSContext* context);
-int tsekI_TLS_send(tsekITLSSocket* socket, char* message, int length);
-int tsekI_TLS_recv(tsekITLSSocket* socket, char* buffer, int length);
+int32_t tsekI_TLS_connect(tsekITLSSocket* tls_socket, char* host, tsekISocket* socket, tsekITLSContext* context);
+int32_t tsekI_TLS_send(tsekITLSSocket* socket, char* message, uint32_t length);
+int32_t tsekI_TLS_recv(tsekITLSSocket* socket, char* buffer, uint32_t length);
 void tsekI_TLS_destroy_socket(tsekITLSSocket* tls_socket, tsekISocket* socket);
 void tsekI_TLS_destroy_context(tsekITLSContext* context);
 
 // TODO: Add TLS server functions
-
-#endif

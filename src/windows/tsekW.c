@@ -1,5 +1,3 @@
-
-#include <math.h>
 #ifdef PLATFORM_WINDOWS
 
 #include "tsekW.h"
@@ -10,7 +8,10 @@
 #include <ws2tcpip.h>
 
 tsekWContext* globalContext;
-int keycode_map[256];
+int keycode_map[TSEKI_MAX_KEYMAP_SIZE];
+
+void Wcreate_dummy_window(tsekIWindow* window);
+void tsekW_request_window_state(tsekIWindow* window, tsekIWindowState state);
 
 typedef HGLRC (WINAPI *wglCreateContextAttribsARB_t)(
     HDC,
@@ -26,131 +27,131 @@ wglCreateContextAttribsARB_t Wcreate_gl_context;
 wglChoosePixelFormatARB_t Wchoose_pixel_format;
 
 void init_windows_keycode_map() {
-  for (int i = 0; i <= 255; i++) {
-    keycode_map[i] = TSEK_NONE;
+  for (int i = 0; i <= TSEKI_MAX_KEYMAP_SIZE; i++) {
+    keycode_map[i] = TSEKI_NONE;
   }
 
-  keycode_map['A'] = TSEK_A;
-  keycode_map['B'] = TSEK_B;
-  keycode_map['C'] = TSEK_C;
-  keycode_map['D'] = TSEK_D;
-  keycode_map['E'] = TSEK_E;
-  keycode_map['F'] = TSEK_F;
-  keycode_map['G'] = TSEK_G;
-  keycode_map['H'] = TSEK_H;
-  keycode_map['I'] = TSEK_I;
-  keycode_map['J'] = TSEK_J;
-  keycode_map['K'] = TSEK_K;
-  keycode_map['L'] = TSEK_L;
-  keycode_map['M'] = TSEK_M;
-  keycode_map['N'] = TSEK_N;
-  keycode_map['O'] = TSEK_O;
-  keycode_map['P'] = TSEK_P;
-  keycode_map['Q'] = TSEK_Q;
-  keycode_map['R'] = TSEK_R;
-  keycode_map['S'] = TSEK_S;
-  keycode_map['T'] = TSEK_T;
-  keycode_map['U'] = TSEK_U;
-  keycode_map['V'] = TSEK_V;
-  keycode_map['W'] = TSEK_W;
-  keycode_map['X'] = TSEK_X;
-  keycode_map['Y'] = TSEK_Y;
-  keycode_map['Z'] = TSEK_Z; 
+  keycode_map['A'] = TSEKI_A;
+  keycode_map['B'] = TSEKI_B;
+  keycode_map['C'] = TSEKI_C;
+  keycode_map['D'] = TSEKI_D;
+  keycode_map['E'] = TSEKI_E;
+  keycode_map['F'] = TSEKI_F;
+  keycode_map['G'] = TSEKI_G;
+  keycode_map['H'] = TSEKI_H;
+  keycode_map['I'] = TSEKI_I;
+  keycode_map['J'] = TSEKI_J;
+  keycode_map['K'] = TSEKI_K;
+  keycode_map['L'] = TSEKI_L;
+  keycode_map['M'] = TSEKI_M;
+  keycode_map['N'] = TSEKI_N;
+  keycode_map['O'] = TSEKI_O;
+  keycode_map['P'] = TSEKI_P;
+  keycode_map['Q'] = TSEKI_Q;
+  keycode_map['R'] = TSEKI_R;
+  keycode_map['S'] = TSEKI_S;
+  keycode_map['T'] = TSEKI_T;
+  keycode_map['U'] = TSEKI_U;
+  keycode_map['V'] = TSEKI_V;
+  keycode_map['W'] = TSEKI_W;
+  keycode_map['X'] = TSEKI_X;
+  keycode_map['Y'] = TSEKI_Y;
+  keycode_map['Z'] = TSEKI_Z; 
 
   // Numbers (top row)
-  keycode_map['0'] = TSEK_0;
-  keycode_map['1'] = TSEK_1;
-  keycode_map['2'] = TSEK_2;
-  keycode_map['3'] = TSEK_3;
-  keycode_map['4'] = TSEK_4;
-  keycode_map['5'] = TSEK_5;
-  keycode_map['6'] = TSEK_6;
-  keycode_map['7'] = TSEK_7;
-  keycode_map['8'] = TSEK_8;
-  keycode_map['9'] = TSEK_9;
+  keycode_map['0'] = TSEKI_0;
+  keycode_map['1'] = TSEKI_1;
+  keycode_map['2'] = TSEKI_2;
+  keycode_map['3'] = TSEKI_3;
+  keycode_map['4'] = TSEKI_4;
+  keycode_map['5'] = TSEKI_5;
+  keycode_map['6'] = TSEKI_6;
+  keycode_map['7'] = TSEKI_7;
+  keycode_map['8'] = TSEKI_8;
+  keycode_map['9'] = TSEKI_9;
 
   // Symbols (OEM keys – layout dependent!)
-  keycode_map[VK_OEM_MINUS]      = TSEK_MINUS;
-  keycode_map[VK_OEM_PLUS]       = TSEK_EQUAL;
-  keycode_map[VK_OEM_4]          = TSEK_LEFTBRACKET;   // [
-  keycode_map[VK_OEM_6]          = TSEK_RIGHTBRACKET;  // ]
-  keycode_map[VK_OEM_5]          = TSEK_BACKSLASH;     // \
-  keycode_map[VK_OEM_1]          = TSEK_SEMICOLON;     // ;
-  keycode_map[VK_OEM_7]          = TSEK_APOSTROPHE;    // '
-  keycode_map[VK_OEM_3]          = TSEK_GRAVE;         // `
-  keycode_map[VK_OEM_COMMA]      = TSEK_COMMA;         // ,
-  keycode_map[VK_OEM_PERIOD]     = TSEK_PERIOD;        // .
-  keycode_map[VK_OEM_2]          = TSEK_SLASH;         // /
+  keycode_map[VK_OEM_MINUS]      = TSEKI_MINUS;
+  keycode_map[VK_OEM_PLUS]       = TSEKI_EQUAL;
+  keycode_map[VK_OEM_4]          = TSEKI_LEFTBRACKET;   // [
+  keycode_map[VK_OEM_6]          = TSEKI_RIGHTBRACKET;  // ]
+  keycode_map[VK_OEM_5]          = TSEKI_BACKSLASH;     // \
+  keycode_map[VK_OEM_1]          = TSEKI_SEMICOLON;     // ;
+  keycode_map[VK_OEM_7]          = TSEKI_APOSTROPHE;    // '
+  keycode_map[VK_OEM_3]          = TSEKI_GRAVE;         // `
+  keycode_map[VK_OEM_COMMA]      = TSEKI_COMMA;         // ,
+  keycode_map[VK_OEM_PERIOD]     = TSEKI_PERIOD;        // .
+  keycode_map[VK_OEM_2]          = TSEKI_SLASH;         // /
 
   // Control keys
-  keycode_map[VK_RETURN]   = TSEK_ENTER;
-  keycode_map[VK_ESCAPE]   = TSEK_ESCAPE;
-  keycode_map[VK_BACK]     = TSEK_BACKSPACE;
-  keycode_map[VK_TAB]      = TSEK_TAB;
-  keycode_map[VK_SPACE]    = TSEK_SPACE;
-  keycode_map[VK_CAPITAL]  = TSEK_CAPSLOCK;
+  keycode_map[VK_RETURN]   = TSEKI_ENTER;
+  keycode_map[VK_ESCAPE]   = TSEKI_ESCAPE;
+  keycode_map[VK_BACK]     = TSEKI_BACKSPACE;
+  keycode_map[VK_TAB]      = TSEKI_TAB;
+  keycode_map[VK_SPACE]    = TSEKI_SPACE;
+  keycode_map[VK_CAPITAL]  = TSEKI_CAPSLOCK;
 
   // Function keys
-  keycode_map[VK_F1]  = TSEK_F1;
-  keycode_map[VK_F2]  = TSEK_F2;
-  keycode_map[VK_F3]  = TSEK_F3;
-  keycode_map[VK_F4]  = TSEK_F4;
-  keycode_map[VK_F5]  = TSEK_F5;
-  keycode_map[VK_F6]  = TSEK_F6;
-  keycode_map[VK_F7]  = TSEK_F7;
-  keycode_map[VK_F8]  = TSEK_F8;
-  keycode_map[VK_F9]  = TSEK_F9;
-  keycode_map[VK_F10] = TSEK_F10;
-  keycode_map[VK_F11] = TSEK_F11;
-  keycode_map[VK_F12] = TSEK_F12;
+  keycode_map[VK_F1]  = TSEKI_F1;
+  keycode_map[VK_F2]  = TSEKI_F2;
+  keycode_map[VK_F3]  = TSEKI_F3;
+  keycode_map[VK_F4]  = TSEKI_F4;
+  keycode_map[VK_F5]  = TSEKI_F5;
+  keycode_map[VK_F6]  = TSEKI_F6;
+  keycode_map[VK_F7]  = TSEKI_F7;
+  keycode_map[VK_F8]  = TSEKI_F8;
+  keycode_map[VK_F9]  = TSEKI_F9;
+  keycode_map[VK_F10] = TSEKI_F10;
+  keycode_map[VK_F11] = TSEKI_F11;
+  keycode_map[VK_F12] = TSEKI_F12;
 
   // Arrow keys
-  keycode_map[VK_LEFT]  = TSEK_LEFT;
-  keycode_map[VK_UP]    = TSEK_UP;
-  keycode_map[VK_RIGHT] = TSEK_RIGHT;
-  keycode_map[VK_DOWN]  = TSEK_DOWN;
+  keycode_map[VK_LEFT]  = TSEKI_LEFT;
+  keycode_map[VK_UP]    = TSEKI_UP;
+  keycode_map[VK_RIGHT] = TSEKI_RIGHT;
+  keycode_map[VK_DOWN]  = TSEKI_DOWN;
 
   // Modifier keys
-  keycode_map[VK_LSHIFT]   = TSEK_LEFTSHIFT;
-  keycode_map[VK_RSHIFT]   = TSEK_RIGHTSHIFT;
-  keycode_map[VK_LCONTROL] = TSEK_LEFTCTRL;
-  keycode_map[VK_RCONTROL] = TSEK_RIGHTCTRL;
-  keycode_map[VK_LMENU]    = TSEK_LEFTALT;
-  keycode_map[VK_RMENU]    = TSEK_RIGHTALT;
-  keycode_map[VK_LWIN]     = TSEK_LEFTMETA;
-  keycode_map[VK_RWIN]     = TSEK_RIGHTMETA;
+  keycode_map[VK_LSHIFT]   = TSEKI_LEFTSHIFT;
+  keycode_map[VK_RSHIFT]   = TSEKI_RIGHTSHIFT;
+  keycode_map[VK_LCONTROL] = TSEKI_LEFTCTRL;
+  keycode_map[VK_RCONTROL] = TSEKI_RIGHTCTRL;
+  keycode_map[VK_LMENU]    = TSEKI_LEFTALT;
+  keycode_map[VK_RMENU]    = TSEKI_RIGHTALT;
+  keycode_map[VK_LWIN]     = TSEKI_LEFTMETA;
+  keycode_map[VK_RWIN]     = TSEKI_RIGHTMETA;
 
   // Numpad
-  keycode_map[VK_NUMPAD0] = TSEK_NUMPAD0;
-  keycode_map[VK_NUMPAD1] = TSEK_NUMPAD1;
-  keycode_map[VK_NUMPAD2] = TSEK_NUMPAD2;
-  keycode_map[VK_NUMPAD3] = TSEK_NUMPAD3;
-  keycode_map[VK_NUMPAD4] = TSEK_NUMPAD4;
-  keycode_map[VK_NUMPAD5] = TSEK_NUMPAD5;
-  keycode_map[VK_NUMPAD6] = TSEK_NUMPAD6;
-  keycode_map[VK_NUMPAD7] = TSEK_NUMPAD7;
-  keycode_map[VK_NUMPAD8] = TSEK_NUMPAD8;
-  keycode_map[VK_NUMPAD9] = TSEK_NUMPAD9;
+  keycode_map[VK_NUMPAD0] = TSEKI_NUMPAD0;
+  keycode_map[VK_NUMPAD1] = TSEKI_NUMPAD1;
+  keycode_map[VK_NUMPAD2] = TSEKI_NUMPAD2;
+  keycode_map[VK_NUMPAD3] = TSEKI_NUMPAD3;
+  keycode_map[VK_NUMPAD4] = TSEKI_NUMPAD4;
+  keycode_map[VK_NUMPAD5] = TSEKI_NUMPAD5;
+  keycode_map[VK_NUMPAD6] = TSEKI_NUMPAD6;
+  keycode_map[VK_NUMPAD7] = TSEKI_NUMPAD7;
+  keycode_map[VK_NUMPAD8] = TSEKI_NUMPAD8;
+  keycode_map[VK_NUMPAD9] = TSEKI_NUMPAD9;
 
-  keycode_map[VK_DECIMAL]  = TSEK_NUMPADDECIMAL;
-  keycode_map[VK_RETURN]   = TSEK_NUMPADENTER;  // Distinguish via extended flag if needed
-  keycode_map[VK_ADD]      = TSEK_NUMPADADD;
-  keycode_map[VK_SUBTRACT] = TSEK_NUMPADSUBTRACT;
-  keycode_map[VK_MULTIPLY] = TSEK_NUMPADMULTIPLY;
-  keycode_map[VK_DIVIDE]   = TSEK_NUMPADDIVIDE;
+  keycode_map[VK_DECIMAL]  = TSEKI_NUMPADDECIMAL;
+  keycode_map[VK_RETURN]   = TSEKI_NUMPADENTER;  // Distinguish via extended flag if needed
+  keycode_map[VK_ADD]      = TSEKI_NUMPADADD;
+  keycode_map[VK_SUBTRACT] = TSEKI_NUMPADSUBTRACT;
+  keycode_map[VK_MULTIPLY] = TSEKI_NUMPADMULTIPLY;
+  keycode_map[VK_DIVIDE]   = TSEKI_NUMPADDIVIDE;
 
   // Editing/navigation
-  keycode_map[VK_INSERT]   = TSEK_INSERT;
-  keycode_map[VK_DELETE]   = TSEK_DELETE;
-  keycode_map[VK_HOME]     = TSEK_HOME;
-  keycode_map[VK_END]      = TSEK_END;
-  keycode_map[VK_PRIOR]    = TSEK_PAGEUP;
-  keycode_map[VK_NEXT]     = TSEK_PAGEDOWN;
+  keycode_map[VK_INSERT]   = TSEKI_INSERT;
+  keycode_map[VK_DELETE]   = TSEKI_DELETE;
+  keycode_map[VK_HOME]     = TSEKI_HOME;
+  keycode_map[VK_END]      = TSEKI_END;
+  keycode_map[VK_PRIOR]    = TSEKI_PAGEUP;
+  keycode_map[VK_NEXT]     = TSEKI_PAGEDOWN;
 
   // Other
-  keycode_map[VK_SNAPSHOT] = TSEK_PRINTSCREEN;
-  keycode_map[VK_SCROLL]   = TSEK_SCROLLLOCK;
-  keycode_map[VK_PAUSE]    = TSEK_PAUSE;
+  keycode_map[VK_SNAPSHOT] = TSEKI_PRINTSCREEN;
+  keycode_map[VK_SCROLL]   = TSEKI_SCROLLLOCK;
+  keycode_map[VK_PAUSE]    = TSEKI_PAUSE;
 }
 
 tsekWWindow* Wget_window(tsekIWindow* window) {
@@ -183,25 +184,25 @@ tsekIKeyCode Wget_keycode(WPARAM wP, LPARAM lP) {
         UINT vk = MapVirtualKey(scancode, MAPVK_VSC_TO_VK_EX);
 
         if (vk == VK_LSHIFT)
-          return TSEK_LEFTSHIFT;
+          return TSEKI_LEFTSHIFT;
         else
-          return TSEK_RIGHTSHIFT;
+          return TSEKI_RIGHTSHIFT;
       }
 
     case VK_CONTROL:
       {
         bool extended = (lP & (1 << 24)) != 0;
-        return extended ? TSEK_RIGHTCTRL : TSEK_LEFTCTRL;
+        return extended ? TSEKI_RIGHTCTRL : TSEKI_LEFTCTRL;
       }
 
     case VK_MENU:
       {
         bool extended = (lP & (1 << 24)) != 0;
-        return extended ? TSEK_RIGHTALT : TSEK_LEFTALT;
+        return extended ? TSEKI_RIGHTALT : TSEKI_LEFTALT;
       }
 
-    case VK_LWIN: return TSEK_LEFTMETA;
-    case VK_RWIN: return TSEK_RIGHTMETA;
+    case VK_LWIN: return TSEKI_LEFTMETA;
+    case VK_RWIN: return TSEKI_RIGHTMETA;
   }
 
   return keycode_map[wP];
@@ -213,12 +214,12 @@ void Wproc_keydown(tsekIWindow* window, WPARAM wP, LPARAM lP) {
 
   tsekIKeyCode key = Wget_keycode(wP, lP);
 
-  if (wwindow->callbacks.keydown && wwindow->keymap[key] == false) {
-    wwindow->callbacks.keydown(window, key);
+  if (wwindow->callbacks.key_down && wwindow->keymap[key] == false) {
+    wwindow->callbacks.key_down(window, key);
   }
 
-  if (wwindow->callbacks.keytype) {
-    wwindow->callbacks.keytype(window, key);
+  if (wwindow->callbacks.key_type) {
+    wwindow->callbacks.key_type(window, key);
   }
 
   wwindow->keymap[key] = true;
@@ -230,8 +231,8 @@ void Wproc_keyup(tsekIWindow* window, WPARAM wP, LPARAM lP) {
 
   tsekIKeyCode key = Wget_keycode(wP, lP);
 
-  if (wwindow->callbacks.keyup) {
-    wwindow->callbacks.keyup(window, key);
+  if (wwindow->callbacks.key_up) {
+    wwindow->callbacks.key_up(window, key);
   }
 
   wwindow->keymap[key] = false;
@@ -241,8 +242,8 @@ void Wproc_mbdown(tsekIWindow* window, tsekIKeyCode code) {
 
   tsekWWindow* wwindow = Wget_window(window);
 
-  if (wwindow->callbacks.mbdown) {
-    wwindow->callbacks.mbdown(window, code);
+  if (wwindow->callbacks.mb_down) {
+    wwindow->callbacks.mb_down(window, code);
   }
 
   wwindow->keymap[code] = true;
@@ -252,8 +253,8 @@ void Wproc_mbup(tsekIWindow* window, tsekIKeyCode code) {
 
   tsekWWindow* wwindow = Wget_window(window);
 
-  if (wwindow->callbacks.mbup) {
-    wwindow->callbacks.mbup(window, code);
+  if (wwindow->callbacks.mb_up) {
+    wwindow->callbacks.mb_up(window, code);
   }
 
   wwindow->keymap[code] = false;
@@ -267,8 +268,8 @@ void Wproc_resize(tsekIWindow* window, WPARAM wP, LPARAM lP) {
     wwindow->callbacks.size(window, LOWORD(lP), HIWORD(lP));
   }
 
-  if (wwindow->callbacks.tsegsize) {
-    wwindow->callbacks.tsegsize(window, LOWORD(lP), HIWORD(lP));
+  if (wwindow->callbacks.tsekG_size) {
+    wwindow->callbacks.tsekG_size(window, LOWORD(lP), HIWORD(lP));
   }
 }
 
@@ -311,26 +312,26 @@ LRESULT CALLBACK Wproc_window(HWND hwnd, UINT msg, WPARAM wP, LPARAM lP) {
     } 
 
     case (WM_LBUTTONDOWN): {
-      Wproc_mbdown(window, TSEK_MBL);
+      Wproc_mbdown(window, TSEKI_MBL);
       break;
     } case (WM_LBUTTONUP): {
-      Wproc_mbup(window, TSEK_MBL);
+      Wproc_mbup(window, TSEKI_MBL);
       break;
     }
 
     case (WM_RBUTTONDOWN): {
-      Wproc_mbdown(window, TSEK_MBR);
+      Wproc_mbdown(window, TSEKI_MBR);
       break;
     } case (WM_RBUTTONUP): {
-      Wproc_mbup(window, TSEK_MBR);
+      Wproc_mbup(window, TSEKI_MBR);
       break;
     }
 
     case (WM_MBUTTONDOWN): {
-      Wproc_mbdown(window, TSEK_MBM);
+      Wproc_mbdown(window, TSEKI_MBM);
       break;
     } case (WM_MBUTTONUP): {
-      Wproc_mbup(window, TSEK_MBM);
+      Wproc_mbup(window, TSEKI_MBM);
       break;
     }
 
@@ -358,14 +359,14 @@ void Wregister_windowclass(tsekIWindowInfo* info) {
 
   WNDCLASSEXW windowClassInfo = {};
 
-#ifdef DEBUG_TSEKI
+#ifdef TSEKI_DEBUG
   printf("Preparing Windowclass\n");
 #endif
 
   wchar_t* className;
   Wget_class_name(info->classId, &className);
 
-#ifdef DEBUG_TSEKI
+#ifdef TSEKI_DEBUG
   wprintf(L"With name: %s\n", className);
 #endif
 
@@ -381,12 +382,12 @@ void Wregister_windowclass(tsekIWindowInfo* info) {
   windowClassInfo.hInstance = globalContext->hInstance;
   windowClassInfo.lpfnWndProc = Wproc_window;
 
-#ifdef DEBUG_TSEKI
+#ifdef TSEKI_DEBUG
   printf("Registering Window Class");
 #endif
 
   if (!RegisterClassExW(&windowClassInfo)) {
-#ifdef DEBUG_TSEKI
+#ifdef TSEKI_DEBUG
     fprintf(stderr, "Failed to register WNDCLASS\n");
 #endif
   }
@@ -395,15 +396,15 @@ void Wregister_windowclass(tsekIWindowInfo* info) {
 }
 
 void Wload_gl() {
-#ifdef DEBUG_TSEKI
+#ifdef TSEKI_DEBUG
   printf("About to open window... \n");
 #endif
 
   tsekIWindow* dummyWindow = malloc(sizeof(tsekIWindow));
-  tsekW_create_dummy_window(dummyWindow);
+  Wcreate_dummy_window(dummyWindow);
   tsekWWindow* wwindow = Wget_window(dummyWindow);
 
-#ifdef DEBUG_TSEKI
+#ifdef TSEKI_DEBUG
   printf("Dummy window opened\n");
 #endif
 
@@ -515,18 +516,11 @@ void Wcreate_tsekG_context(tsekIPixelFormat* format, tsekIWindow* window) {
 }
 
 
-void tsekW_init(tsekIContext* context, tsekIWindow* window, tsekIWindowInfo* info, wchar_t* defaultTitle, bool createGlobalContext, bool console) {
+void tsekW_init(tsekIContext* context, tsekIWindow* window, tsekIWindowInfo* info, wchar_t* defaultTitle) {
 
   init_windows_keycode_map();
 
-  if (console) {
-    AllocConsole();
-    freopen("CONOUT$", "w", stdout);
-    freopen("CONOUT$", "w", stderr);
-    SetConsoleOutputCP(CP_UTF8);
-  }
-
-  tsekW_fill_context(context, createGlobalContext);
+  tsekW_fill_context(context);
 
   tsekIPixelFormat defaultPixelFormat = {
     .r_bits = 8, .g_bits = 8, .b_bits = 8, .a_bits = 8,
@@ -545,26 +539,26 @@ void tsekW_init(tsekIContext* context, tsekIWindow* window, tsekIWindowInfo* inf
     info = &defaultInfo;
   }
 
-#ifdef DEBUG_TSEKI
+#ifdef TSEKI_DEBUG
   printf("About to load opengl...\n");
 #endif
 
   Wload_gl();
 
-#ifdef DEBUG_TSEKI
+#ifdef TSEKI_DEBUG
   printf("Loaded Opengl\n");
 #endif
 
   Wregister_windowclass(info);
 
-#ifdef DEBUG_TSEKI
+#ifdef TSEKI_DEBUG
   printf("Window Class Registered\n");
 #endif
 
   tsekW_create_window(window, info);
 }
 
-void tsekW_fill_context(tsekIContext* context, bool setGlobal) {
+void tsekW_fill_context(tsekIContext* context) {
   context->inner = malloc(sizeof(tsekWContext));
 
   tsekWContext* wcontext = Wget_context(context);
@@ -572,8 +566,8 @@ void tsekW_fill_context(tsekIContext* context, bool setGlobal) {
 
   LARGE_INTEGER start;
   QueryPerformanceCounter(&start);
-#ifdef DEBUG_TSEKI
-  printf("%d\n", start.QuadPart);
+#ifdef TSEKI_DEBUG
+  printf("Start Time: %d\n", start.QuadPart);
 #endif
 
   QueryPerformanceCounter(&wcontext->time);
@@ -582,26 +576,24 @@ void tsekW_fill_context(tsekIContext* context, bool setGlobal) {
 
   wcontext->isCursorVisible = true;
 
-  if (setGlobal) {
-    globalContext = wcontext;
-  }
+  globalContext = wcontext;
 }
 
 void tsekW_destroy_context(tsekIContext* context) {
   free(context->inner);
 }
 
-void tsekW_create_dummy_window(tsekIWindow* window) {
+void Wcreate_dummy_window(tsekIWindow* window) {
     HINSTANCE hInstance = globalContext->hInstance;
     window->inner = calloc(1, sizeof(tsekWWindow));
 
     Wregister_windowclass(&(tsekIWindowInfo){});
-#ifdef DEBUG_TSEKI
+#ifdef TSEKI_DEBUG
     printf("WNDCLASS registered\n");
 #endif
     tsekWWindow* wwindow = Wget_window(window);
 
-#ifdef DEBUG_TSEKI
+#ifdef TSEKI_DEBUG
     printf("Running CreateWindowExW... \n");
 #endif
     wwindow->handle = CreateWindowExW(
@@ -620,7 +612,7 @@ void tsekW_create_dummy_window(tsekIWindow* window) {
     );
     wwindow->deviceContext = GetDC(wwindow->handle);
 
-#ifdef DEBUG_TSEKI
+#ifdef TSEKI_DEBUG
     printf("Window Created with error code: %d\n", GetLastError());
 #endif
 
@@ -723,8 +715,8 @@ bool tsekW_update_window(tsekIWindow* window) {
   tsekWWindow* win = Wget_window(window);
   if(win->prevState != Wget_window_state(win)) {
     win->prevState = Wget_window_state(win);
-    if (win->callbacks.statechange) { 
-      win->callbacks.statechange(window, win->prevState);
+    if (win->callbacks.window_state_change) { 
+      win->callbacks.window_state_change(window, win->prevState);
     }
   }
 
@@ -797,7 +789,7 @@ void Wget_window_rect(tsekIWindow* window, void* out, bool pos, bool dims) {
   RECT rect;
   GetWindowRect(Wget_window(window)->handle, &rect);
 
-  tsekIPos result = {
+  tsekIRect result = {
     .x = rect.left,
     .y = rect.top,
     .width = rect.right - rect.left,
@@ -805,12 +797,12 @@ void Wget_window_rect(tsekIWindow* window, void* out, bool pos, bool dims) {
   };
 
   if (pos) {
-    ((tsekIPos*)out)->x = result.x;
-    ((tsekIPos*)out)->y = result.y;
+    ((tsekIRect*)out)->x = result.x;
+    ((tsekIRect*)out)->y = result.y;
   }
   if (dims) {
-    ((tsekIPos*)out)->width = result.width;
-    ((tsekIPos*)out)->height = result.height;
+    ((tsekIRect*)out)->width = result.width;
+    ((tsekIRect*)out)->height = result.height;
   }
 }
 
@@ -823,7 +815,7 @@ void Wget_client_rect(tsekIWindow* window, void* out, bool pos, bool dims) {
 
   int FrameExtentsH = (window_rect.bottom - window_rect.top) - client_rect.bottom;
 
-  tsekIPos result = {
+  tsekIRect result = {
     .x = window_rect.left,
     .y = window_rect.top + FrameExtentsH,
     .width = window_rect.right - window_rect.left,
@@ -831,16 +823,16 @@ void Wget_client_rect(tsekIWindow* window, void* out, bool pos, bool dims) {
   };
 
   if (pos) {
-    ((tsekIPos*)out)->x = result.x;
-    ((tsekIPos*)out)->y = result.y;
+    ((tsekIRect*)out)->x = result.x;
+    ((tsekIRect*)out)->y = result.y;
   }
   if (dims) {
-    ((tsekIPos*)out)->width = result.width;
-    ((tsekIPos*)out)->height = result.height;
+    ((tsekIRect*)out)->width = result.width;
+    ((tsekIRect*)out)->height = result.height;
   }
 }
 
-void Wget_mouse_pos(tsekIWindow* window, void* out, tsekIPos relativeTo) {
+void Wget_mouse_pos(tsekIWindow* window, void* out, tsekIRect relativeTo) {
   POINT mousepos;
   GetCursorPos(&mousepos);
 
@@ -848,72 +840,62 @@ void Wget_mouse_pos(tsekIWindow* window, void* out, tsekIPos relativeTo) {
   ((int*)out)[1] = mousepos.y - relativeTo.y;
 }
 
-void tsekW_get_window_param(tsekIWindow* window, tsekIWindowParam param, void* out) {
+void tsekW_get_param(tsekIWindow* window, tsekIWindowParam param, void* out) {
 
   tsekWWindow* wwindow = Wget_window(window);
 
   switch (param) {
-    case KEYMAP: {
-      int** p = (int**)out;
+
+    case TSEKI_KEYMAP: {
+      int* p = out;
+      memcpy(p, wwindow->keymap, TSEKI_MAX_KEYMAP_SIZE * sizeof(int));
+      break;
+    }
+    case TSEKI_KEYMAP_REFERENCE: {
+      int** p = out;
       *p = wwindow->keymap;
       break;
     }
-    case CALLBACKS: {
-      tsekCallbacks** p = (tsekCallbacks**)out;
-      *p = &wwindow->callbacks;
+
+    case TSEKI_CALLBACKS: {
+      tsekICallbacks* p = out;
+      *p = wwindow->callbacks;
       break;
     }
 
-    case WINDOW_RECT: {
+    case TSEKI_WINDOW_RECT: {
       Wget_window_rect(window, out, true, true);
       break;
     }
-    case WINDOW_POS: {
-      Wget_window_rect(window, out, true, false);
-      break;
-    }
-    case WINDOW_DIM: {
-      Wget_window_rect(window, out, false, true);
-      break;
-    }
-
-    case CLIENT_RECT: {
+    case TSEKI_CLIENT_RECT: {
       Wget_client_rect(window, out, true, true);
       break;
     }
-    case CLIENT_POS: {
-      Wget_client_rect(window, out, true, false);
-      break;
-    }
-    case CLIENT_DIM: {
-      Wget_client_rect(window, out, false, true);
-      break;
-    }
 
-    case CURSORPOS_DESKTOP: {
-      Wget_mouse_pos(window, out, (tsekIPos){0, 0, 0, 0});
+    case TSEKI_CURSORPOS_DESKTOP: {
+      Wget_mouse_pos(window, out, (tsekIRect){0, 0, 0, 0});
       break;
     }
-    case CURSORPOS_WINDOW: {
-      tsekIPos windowpos;
+    case TSEKI_CURSORPOS_WINDOW: {
+      tsekIRect windowpos;
       Wget_window_rect(window, &windowpos, true, false);
       Wget_mouse_pos(window, out, windowpos);
       break;
     }
-    case CURSORPOS_CLIENT: {
-      tsekIPos clientpos;
+    case TSEKI_CURSORPOS_CLIENT: {
+      tsekIRect clientpos;
       Wget_client_rect(window, &clientpos, true, false);
       Wget_mouse_pos(window, out, clientpos);
       break;
     }
 
-    case WINDOW_STATE: {
+    case TSEKI_WINDOW_STATE: {
       tsekIWindowState* state = (tsekIWindowState*)out;
       *state = Wget_window_state(Wget_window(window));
       break;
     }
 
-    case MOUSE_DELTA: {
+    case TSEKI_MOUSE_DELTA: {
       float* deltas = (float*)out;
       memcpy(deltas, Wget_window(window)->mouse_deltas, 2 * sizeof(float));
       break;
@@ -922,13 +904,13 @@ void tsekW_get_window_param(tsekIWindow* window, tsekIWindowParam param, void* o
 }
 
 void Wset_window_rect(tsekIWindow* window, void* in, bool pos, bool dims) {
-    tsekIPos* input = (tsekIPos*)in;
+    tsekIRect* input = (tsekIRect*)in;
     if (pos) SetWindowPos(Wget_window(window)->handle, HWND_TOP, input->x, input->y, input->width, input->height, SWP_NOSIZE);
     if (dims) SetWindowPos(Wget_window(window)->handle, HWND_TOP, input->x, input->y, input->width, input->height, SWP_NOMOVE);
 }
 
 void Wset_client_rect(tsekIWindow* window, void* in, bool pos, bool dims) {
-    tsekIPos* input = (tsekIPos*)in;
+    tsekIRect* input = (tsekIRect*)in;
     RECT window_rect, client_rect;
     GetWindowRect(Wget_window(window)->handle, &window_rect); GetClientRect(Wget_window(window)->handle, &client_rect);
     int frameExtentsH = (window_rect.bottom - window_rect.top) - client_rect.bottom;
@@ -940,69 +922,60 @@ void Wset_client_rect(tsekIWindow* window, void* in, bool pos, bool dims) {
     if (dims) SetWindowPos(Wget_window(window)->handle, HWND_TOP, input->x, top, input->width, height, SWP_NOMOVE);
 }
 
-void tsekW_set_window_param(tsekIWindow* window, tsekIWindowParam param, void* in) {
+void tsekW_set_param(tsekIWindow* window, tsekIWindowParam param, void* in) {
   tsekWWindow* wwindow = Wget_window(window);
 
   switch (param) {
-    case WINDOW_RECT: {
+
+    case TSEKI_WINDOW_RECT: {
       Wset_window_rect(window, in, true, true);
       break;
     }
-    case WINDOW_POS: {
-      Wset_window_rect(window, in, true, false);
-      break;
-    }
-    case WINDOW_DIM: {
-      Wset_window_rect(window, in, false, true);
-      break;
-    }
 
-    case CLIENT_RECT: {
+    case TSEKI_CLIENT_RECT: {
       Wset_client_rect(window, in, true, true);
       break;
     }
-    case CLIENT_POS: {
-      Wset_client_rect(window, in, true, false);
-      break;
-    }
-    case CLIENT_DIM: {
-      Wset_client_rect(window, in, false, true);
-      break;
-    }
 
-    case CALLBACKS: {
-      tsekCallbacks* callbacks = (tsekCallbacks*)in;
+    case TSEKI_CALLBACKS: {
+      tsekICallbacks* callbacks = in;
       Wget_window(window)->callbacks = *callbacks;
       break;
     }
-    case KEYMAP: {
+    case TSEKI_KEYMAP:
+    case TSEKI_KEYMAP_REFERENCE: {
       fprintf(stderr, "Keymap is read-only.");
       break;
     }
 
-    case CURSORPOS_DESKTOP: {
-      int* pos = (int*)in;
+    case TSEKI_CURSORPOS_DESKTOP: {
+      int* pos = in;
       SetCursorPos(pos[0], pos[1]);
       break;
     }
-    case CURSORPOS_WINDOW: {
-      int* pos = (int*) in;
-      tsekIPos relativeTo;
+    case TSEKI_CURSORPOS_WINDOW: {
+      int* pos = in;
+      tsekIRect relativeTo;
       Wget_window_rect(window, &relativeTo, true, false);
       SetCursorPos(pos[0] + relativeTo.x, pos[1] + relativeTo.y);
       break;
     }
-    case CURSORPOS_CLIENT: {
-      int* pos = (int*) in;
-      tsekIPos relativeTo;
+    case TSEKI_CURSORPOS_CLIENT: {
+      int* pos = in;
+      tsekIRect relativeTo;
       Wget_client_rect(window, &relativeTo, true, false);
       SetCursorPos(pos[0] + relativeTo.x, pos[1] + relativeTo.y);
       break;
     }
-    case WINDOW_STATE: {
-      tsekIWindowState* state = (tsekIWindowState*)in;
+
+    case TSEKI_WINDOW_STATE: {
+      tsekIWindowState* state = in;
       tsekW_request_window_state(window, *state);
       break;
+    }
+
+    case TSEKI_MOUSE_DELTA: {
+      fprintf(stderr, "Mouse Deltas are Read Only\n");
     }
   }
 }
@@ -1091,7 +1064,7 @@ void tsekW_network_cleanup() {
   WSACleanup();
 }
 
-void tsekW_get_address_info(char* url, int port, tsekIAddressInfo* info) {
+void tsekW_get_address_info(char* url, uint32_t port, tsekIAddressInfo* info) {
   info->inner = malloc(sizeof(tsekWAddressInfo));
   tsekWAddressInfo* address = Wget_address_info(info);
 
@@ -1145,7 +1118,7 @@ void tsekW_socket_bind(tsekISocket* socket, tsekIAddressInfo* address) {
   }
 }
 
-void tsekW_socket_listen(tsekISocket* socket, int backlog) {
+void tsekW_socket_listen(tsekISocket* socket, uint32_t backlog) {
   int success = listen(socket->handle, backlog);
 
   if (success != 0) {
@@ -1178,24 +1151,24 @@ void tsekW_socket_connect(tsekISocket* socket, tsekIAddressInfo* address) {
 
 // messaging
 
-int tsekW_socket_send(tsekISocket* socket, char* message, int length, bool OOB, bool dontroute) {
-  int flags = 0;
-  if (OOB) flags |= MSG_OOB;
-  if (dontroute) flags |= MSG_DONTROUTE;
-  return send(socket->handle, message, length, flags);
+int32_t tsekW_socket_send(tsekISocket* socket, char* message, uint32_t length, uint32_t flags) {
+  int send_flags = 0;
+  if (flags & TSEKI_SOCKET_OOB) flags |= MSG_OOB;
+  if (flags & TSEKI_SOCKET_DONTROUTE) flags |= MSG_DONTROUTE;
+  return send(socket->handle, message, length, send_flags);
 }
 
-int tsekW_socket_recv(tsekISocket* socket, char* message, int length, bool OOB, bool peek, bool waitall) {
-  int flags = 0;
-  if (OOB) flags |= MSG_OOB;
-  if (peek) flags |= MSG_PEEK;
-  if (waitall) flags |= MSG_DONTROUTE;
+int32_t tsekW_socket_recv(tsekISocket* socket, char* message, uint32_t length, uint32_t flags) {
+  int recv_flags = 0;
+  if (flags & TSEKI_SOCKET_OOB) flags |= MSG_OOB;
+  if (flags & TSEKI_SOCKET_PEEK) flags |= MSG_PEEK;
+  if (flags & TSEKI_SOCKET_WAITALL) flags |= MSG_DONTROUTE;
   return recv(socket->handle, message, length, flags);
 }
 
 int tsekW_socket_geterror(tsekISocket* socket) { return 0; }
 
-void tsekW_socket_set_nonblocking(tsekISocket* socket, int mode) {
+void tsekW_socket_set_nonblocking(tsekISocket* socket, uint32_t mode) {
   u_long ulm = mode;
   if (ioctlsocket(socket->handle, FIONBIO, &ulm) != NO_ERROR) {
     printf("ioctlsocket failed setting FIONBIO to mode %d\n", mode);
@@ -1213,7 +1186,7 @@ void tsekW_TLS_init(tsekITLSContext* context) {
 
 int tsekW_TLS_connect(tsekITLSSocket* tls_socket, char* host, tsekISocket* socket, tsekITLSContext* context) {
 
-#ifdef DEBUG_TSEKI
+#ifdef TSEKI_DEBUG
   printf("Connecting...\n");
 #endif
 
@@ -1221,7 +1194,7 @@ int tsekW_TLS_connect(tsekITLSSocket* tls_socket, char* host, tsekISocket* socke
   tsekWTLSSocket* tlsock = Wget_tls_socket(tls_socket);
   tlsock->socket = socket;
 
-#ifdef DEBUG_TSEKI
+#ifdef TSEKI_DEBUG
   printf("TLS hostname: %s\n", host);
 #endif
 
@@ -1240,7 +1213,7 @@ int tsekW_TLS_connect(tsekITLSSocket* tls_socket, char* host, tsekISocket* socke
     return -1;
   }
 
-#ifdef DEBUG_TSEKI
+#ifdef TSEKI_DEBUG
   printf("Credentials Aquired\n");
 #endif
 
@@ -1250,13 +1223,13 @@ int tsekW_TLS_connect(tsekITLSSocket* tls_socket, char* host, tsekISocket* socke
   int success = 0;
   CtxtHandle* handshake_context = 0;
 
-#ifdef DEBUG_TSEKI
+#ifdef TSEKI_DEBUG
   printf("Starting Loop");
 #endif
 
   for (;;) {
 
-#ifdef DEBUG_TSEKI
+#ifdef TSEKI_DEBUG
     printf("Describing Buffers\n");
 #endif
 
@@ -1285,7 +1258,7 @@ int tsekW_TLS_connect(tsekITLSSocket* tls_socket, char* host, tsekISocket* socke
 
     DWORD flags = ISC_REQ_USE_SUPPLIED_CREDS | ISC_REQ_ALLOCATE_MEMORY | ISC_REQ_CONFIDENTIALITY | ISC_REQ_REPLAY_DETECT | ISC_REQ_SEQUENCE_DETECT | ISC_REQ_STREAM;
 
-#ifdef DEBUG_TSEKI
+#ifdef TSEKI_DEBUG
     printf("Attempting Handshake\n");
 #endif
 
@@ -1304,7 +1277,7 @@ int tsekW_TLS_connect(tsekITLSSocket* tls_socket, char* host, tsekISocket* socke
         &flags,
         NULL);
 
-#ifdef DEBUG_TSEKI
+#ifdef TSEKI_DEBUG
     printf("Security Context Status %x\n", status);
 #endif
 
@@ -1321,7 +1294,7 @@ int tsekW_TLS_connect(tsekITLSSocket* tls_socket, char* host, tsekISocket* socke
 
     // Case 1: Handshake Successful!
     if (status == SEC_E_OK) {
-#ifdef DEBUG_TSEKI
+#ifdef TSEKI_DEBUG
       printf("Handshake Successful!!\n");
 #endif
       break;
@@ -1337,7 +1310,7 @@ int tsekW_TLS_connect(tsekITLSSocket* tls_socket, char* host, tsekISocket* socke
       int buffer_size = outgoing_buffers[0].cbBuffer;
 
       while (buffer_size != 0) {
-        int sent = tsekW_socket_send(socket, out_buffer, buffer_size, 0, 0);
+        int sent = tsekW_socket_send(socket, out_buffer, buffer_size, TSEKI_SOCKET_NONE);
 
         if (sent <= 0) {
           break;
@@ -1366,7 +1339,7 @@ int tsekW_TLS_connect(tsekITLSSocket* tls_socket, char* host, tsekISocket* socke
     }
 
     // Now we properly recv data
-    int bytes = tsekW_socket_recv(socket, tlsock->recv_data + tlsock->recieved, sizeof(tlsock->recv_data) - tlsock->recieved, 0, 0, 0);
+    int bytes = tsekW_socket_recv(socket, tlsock->recv_data + tlsock->recieved, sizeof(tlsock->recv_data) - tlsock->recieved, TSEKI_SOCKET_NONE);
 
     // Did server disconnect?
     if (bytes == 0) {
@@ -1391,7 +1364,7 @@ int tsekW_TLS_connect(tsekITLSSocket* tls_socket, char* host, tsekISocket* socke
   return 0;
 }
 
-int tsekW_TLS_send(tsekITLSSocket* socket, char* message, int length) {
+int tsekW_TLS_send(tsekITLSSocket* socket, char* message, uint32_t length) {
   tsekWTLSSocket* tlsock = Wget_tls_socket(socket);
 
   while (length != 0) {
@@ -1430,7 +1403,7 @@ int tsekW_TLS_send(tsekITLSSocket* socket, char* message, int length) {
       return -1;
     }
 
-#ifdef DEBUG_TSEKI
+#ifdef TSEKI_DEBUG
     printf("Encryption Successful!\n");
 #endif
 
@@ -1455,11 +1428,11 @@ int tsekW_TLS_send(tsekITLSSocket* socket, char* message, int length) {
   return 0;
 }
 
-int tsekW_TLS_recv(tsekITLSSocket* socket, char* buffer, int length) {
+int tsekW_TLS_recv(tsekITLSSocket* socket, char* buffer, uint32_t length) {
   // 0 -> disconnect  + -> bytes sent  - -> error code 
   int result = 0;
   tsekWTLSSocket* tlsock = Wget_tls_socket(socket);
-#ifdef DEBUG_TSEKI
+#ifdef TSEKI_DEBUG
   printf("Recving\n");
 #endif
 
@@ -1474,7 +1447,7 @@ int tsekW_TLS_recv(tsekITLSSocket* socket, char* buffer, int length) {
       buffer += bytes_to_read;
       length -= bytes_to_read;
       result += bytes_to_read;
-#ifdef DEBUG_TSEKI
+#ifdef TSEKI_DEBUG
       printf("Pushing Decrypted Data\n");
 #endif
 
@@ -1552,7 +1525,7 @@ int tsekW_TLS_recv(tsekITLSSocket* socket, char* buffer, int length) {
       }
 
       // recv data 
-      int bytes_recved = tsekW_socket_recv(tlsock->socket, tlsock->recv_data + tlsock->recieved, sizeof(tlsock->recv_data) - tlsock->recieved, 0, 0, 0);
+      int bytes_recved = tsekW_socket_recv(tlsock->socket, tlsock->recv_data + tlsock->recieved, sizeof(tlsock->recv_data) - tlsock->recieved, TSEKI_SOCKET_NONE);
 
       // server disconnect
       if (bytes_recved == 0) {
@@ -1603,7 +1576,7 @@ void tsekW_TLS_destroy_socket(tsekITLSSocket* tls_socket, tsekISocket* socket) {
     int length = outgoing_buffers[0].cbBuffer;
 
     while (length != 0) {
-      int bytes_sent = tsekW_socket_send(tlsock->socket, message, length, 0, 0);
+      int bytes_sent = tsekW_socket_send(tlsock->socket, message, length, TSEKI_SOCKET_NONE);
 
       if (bytes_sent <= 0) {
         break;

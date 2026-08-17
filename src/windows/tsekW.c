@@ -360,14 +360,14 @@ void Wregister_windowclass(tsekIWindowInfo* info) {
   WNDCLASSEXW windowClassInfo = {};
 
 #ifdef TSEKI_DEBUG
-  printf("Preparing Windowclass\n");
+  printf("[WD@Wregister_windowclass] Preparing Windowclass\n");
 #endif
 
   wchar_t* className;
   Wget_class_name(info->classId, &className);
 
 #ifdef TSEKI_DEBUG
-  wprintf(L"With name: %s\n", className);
+  wprintf(L"[WD@Wregister_windowclass] With name: %s\n", className);
 #endif
 
   windowClassInfo.cbSize = sizeof(WNDCLASSEXW);
@@ -383,12 +383,12 @@ void Wregister_windowclass(tsekIWindowInfo* info) {
   windowClassInfo.lpfnWndProc = Wproc_window;
 
 #ifdef TSEKI_DEBUG
-  printf("Registering Window Class");
+  printf("[WD@Wregister_windowclass] Registering Window Class");
 #endif
 
   if (!RegisterClassExW(&windowClassInfo)) {
 #ifdef TSEKI_DEBUG
-    fprintf(stderr, "Failed to register WNDCLASS\n");
+    fprintf(stderr, "[WE@Wregister_windowclass] Failed to register WNDCLASS\n");
 #endif
   }
 
@@ -397,7 +397,7 @@ void Wregister_windowclass(tsekIWindowInfo* info) {
 
 void Wload_gl() {
 #ifdef TSEKI_DEBUG
-  printf("About to open window... \n");
+  printf("[WD@Wload_gl] About to open window... \n");
 #endif
 
   tsekIWindow* dummyWindow = malloc(sizeof(tsekIWindow));
@@ -405,7 +405,7 @@ void Wload_gl() {
   tsekWWindow* wwindow = Wget_window(dummyWindow);
 
 #ifdef TSEKI_DEBUG
-  printf("Dummy window opened\n");
+  printf("[WD@Wload_gl] Dummy window opened\n");
 #endif
 
   PIXELFORMATDESCRIPTOR pfd = {
@@ -433,7 +433,9 @@ void Wload_gl() {
   Wchoose_pixel_format = (wglChoosePixelFormatARB_t)wglGetProcAddress("wglChoosePixelFormatARB");
 
   if (!Wchoose_pixel_format || !Wcreate_gl_context) {
-    fprintf(stderr, "Failed to proc functions CreateContextAttribsARB_t or ChoosePixelFormatARB_T");
+#ifdef TSEKI_DEBUG
+    fprintf(stderr, "[WE@Wload_gl] Failed to proc functions CreateContextAttribsARB_t or ChoosePixelFormatARB_T");
+#endif
   }
 
   wglDeleteContext(dummyContext);
@@ -484,14 +486,18 @@ void Wcreate_tsekG_context(tsekIPixelFormat* format, tsekIWindow* window) {
     BOOL result = Wchoose_pixel_format(wwindow->deviceContext, pixelFormatAttribs, NULL, 1, &chosenFormat, &numFormats);
 
     if (!result || numFormats == 0) {
-      fprintf(stderr, "Failed to find pixel format\n");
+#ifdef TSEKI_DEBUG
+      fprintf(stderr, "[WE@Wcreate_tsekG_context] Failed to find pixel format\n");
+#endif
     }
   }
 
   PIXELFORMATDESCRIPTOR pfd;
   DescribePixelFormat(wwindow->deviceContext, chosenFormat, sizeof(pfd), &pfd);
   if (!SetPixelFormat(wwindow->deviceContext, chosenFormat, &pfd)) {
-    fprintf(stderr, "Failed to bind pixel format\n");
+#ifdef TSEKI_DEBUG
+    fprintf(stderr, "[WE@Wcreate_tsekG_context] Failed to bind pixel format\n");
+#endif
   }
 
   int attribs[] = {
@@ -503,15 +509,21 @@ void Wcreate_tsekG_context(tsekIPixelFormat* format, tsekIWindow* window) {
 
   wwindow->glContext = Wcreate_gl_context(wwindow->deviceContext, NULL, attribs);
   if (!wwindow->glContext) {
-    fprintf(stderr, "Failed to create WGL context\n");
+#ifdef TSEKI_DEBUG
+    fprintf(stderr, "[WE@Wcreate_tsekG_context] Failed to create WGL context\n");
+#endif
   }
 
   if (!wglMakeCurrent(wwindow->deviceContext, wwindow->glContext)) {
-    fprintf(stderr, "Failed to bind WGL context\n");
+#ifdef TSEKI_DEBUG
+    fprintf(stderr, "[WE@Wcreate_tsekG_context] Failed to bind WGL context\n");
+#endif
   }
 
   if (!gladLoadGL()) {
-    fprintf(stderr, "Failed to load GLAD\n");
+#ifdef TSEKI_DEBUG
+    fprintf(stderr, "[WE@Wcreate_tsekG_context] Failed to load GLAD\n");
+#endif
   }
 }
 
@@ -540,19 +552,19 @@ void tsekW_init(tsekIContext* context, tsekIWindow* window, tsekIWindowInfo* inf
   }
 
 #ifdef TSEKI_DEBUG
-  printf("About to load opengl...\n");
+  printf("[WD@tsekW_init] About to load opengl...\n");
 #endif
 
   Wload_gl();
 
 #ifdef TSEKI_DEBUG
-  printf("Loaded Opengl\n");
+  printf("[WD@tsekW_init] Loaded Opengl\n");
 #endif
 
   Wregister_windowclass(info);
 
 #ifdef TSEKI_DEBUG
-  printf("Window Class Registered\n");
+  printf("[WD@tsekW_init] Window Class Registered\n");
 #endif
 
   tsekW_create_window(window, info);
@@ -567,7 +579,7 @@ void tsekW_fill_context(tsekIContext* context) {
   LARGE_INTEGER start;
   QueryPerformanceCounter(&start);
 #ifdef TSEKI_DEBUG
-  printf("Start Time: %d\n", start.QuadPart);
+  printf("[WD@tsekW_fill_context] Start Time: %d\n", start.QuadPart);
 #endif
 
   QueryPerformanceCounter(&wcontext->time);
@@ -589,12 +601,12 @@ void Wcreate_dummy_window(tsekIWindow* window) {
 
     Wregister_windowclass(&(tsekIWindowInfo){});
 #ifdef TSEKI_DEBUG
-    printf("WNDCLASS registered\n");
+    printf("[WD@Wcreate_dummy_window] WNDCLASS registered\n");
 #endif
     tsekWWindow* wwindow = Wget_window(window);
 
 #ifdef TSEKI_DEBUG
-    printf("Running CreateWindowExW... \n");
+    printf("[WD@Wcreate_dummy_window] Running CreateWindowExW... \n");
 #endif
     wwindow->handle = CreateWindowExW(
         0,
@@ -613,11 +625,13 @@ void Wcreate_dummy_window(tsekIWindow* window) {
     wwindow->deviceContext = GetDC(wwindow->handle);
 
 #ifdef TSEKI_DEBUG
-    printf("Window Created with error code: %d\n", GetLastError());
+    printf("[WD@Wcreate_dummy_window] Window Created with error code: %d\n", GetLastError());
 #endif
 
     if (wwindow->handle == NULL) {
-      printf("Failed to create Dummy Window\n");
+#ifdef TSEKI_DEBUG
+      fprintf(stderr, "[WE@Wcreate_dummy_window] Failed to create Dummy Window\n");
+#endif
     }
 }
 
@@ -627,7 +641,6 @@ void tsekW_create_window(tsekIWindow* window, tsekIWindowInfo* info) {
 
   wchar_t* className;
   Wget_class_name(info->classId, &className);
-  wprintf(L"%s\n", className);
 
   wwindow->handle = CreateWindowExW(
       0,
@@ -646,7 +659,9 @@ void tsekW_create_window(tsekIWindow* window, tsekIWindowInfo* info) {
 
   if (!wwindow->handle) {
     DWORD err = GetLastError();
-    fprintf(stderr, "Failed to create window: %lu \n", err);
+#ifdef TSEKI_DEBUG
+    fprintf(stderr, "[WE@tsekW_create_window] Failed to create window: %lu \n", err);
+#endif
   }
 
   Wcreate_tsekG_context(&info->pixelFormat, window);
@@ -944,7 +959,9 @@ void tsekW_set_param(tsekIWindow* window, tsekIWindowParam param, void* in) {
     }
     case TSEKI_KEYMAP:
     case TSEKI_KEYMAP_REFERENCE: {
-      fprintf(stderr, "Keymap is read-only.");
+#ifdef TSEKI_DEBUG
+      fprintf(stderr, "[WI@tsekI_set_param] Keymap is read-only.\n");
+#endif
       break;
     }
 
@@ -975,7 +992,10 @@ void tsekW_set_param(tsekIWindow* window, tsekIWindowParam param, void* in) {
     }
 
     case TSEKI_MOUSE_DELTA: {
-      fprintf(stderr, "Mouse Deltas are Read Only\n");
+#ifdef TSEKI_DEBUG
+      fprintf(stderr, "[WI@tsekI_set_param] Mouse Deltas are Read Only\n");
+#endif
+      break;
     }
   }
 }
@@ -1051,16 +1071,18 @@ tsekWAddressInfo* Wget_address_info(tsekIAddressInfo* info) {
   return (tsekWAddressInfo*)info->inner;
 }
 
-void tsekW_network_init() {
+void tsekW_init_network() {
   WSADATA wsaData;
   int iResult = WSAStartup(MAKEWORD(2,2), &wsaData);
 
   if (iResult != 0) {
-    printf("WSAStartup failed with error code %d\n", iResult);
+#ifdef TSEKI_DEBUG
+    fprintf(stderr, "[WE@tsekW_init_network] WSAStartup failed with error code %d\n", iResult);
+#endif
   }
 }
 
-void tsekW_network_cleanup() {
+void tsekW_cleanup_network() {
   WSACleanup();
 }
 
@@ -1069,7 +1091,6 @@ void tsekW_get_address_info(char* url, uint32_t port, tsekIAddressInfo* info) {
   tsekWAddressInfo* address = Wget_address_info(info);
 
   char port_string[6];
-  sprintf(port_string, "%05d", port);
 
   struct addrinfo hints = {
     .ai_family = AF_INET,
@@ -1081,7 +1102,9 @@ void tsekW_get_address_info(char* url, uint32_t port, tsekIAddressInfo* info) {
   int success = getaddrinfo(url, port_string, &hints, &address->info);
 
   if (success != 0) {
-    fprintf(stderr, "getaddrinfo failed with error code %d\n", success);
+#ifdef TSEKI_DEBUG
+    fprintf(stderr, "[WE@tsekW_get_address_info] getaddrinfo failed with error code %d\n", success);
+#endif
   }
 }
 
@@ -1091,7 +1114,9 @@ void tsekW_display_addrinfo(tsekIAddressInfo* info) {
   char ip[INET_ADDRSTRLEN];
   inet_ntop(address->info->ai_family, &(addrin->sin_addr), ip, INET_ADDRSTRLEN);
 
+#ifdef TSEKI_DEBUG
   printf("\nSOCKET ADDRINFO\n-=-=-=-=-=-=-\nIP: %s\nPort: %d\n\n", ip, ntohs(addrin->sin_port));
+#endif
 }
 
 void tsekW_destroy_address_info(tsekIAddressInfo* info) {
@@ -1114,7 +1139,9 @@ void tsekW_socket_bind(tsekISocket* socket, tsekIAddressInfo* address) {
   int success = bind(socket->handle, info->info->ai_addr, info->info->ai_addrlen);
 
   if (success != 0) {
-    fprintf(stderr, "bind failed with error code %d\n", success);
+#ifdef TSEKI_DEBUG
+    fprintf(stderr, "[WE@tsekW_socket_bind] bind failed with error code %d\n", success);
+#endif
   }
 }
 
@@ -1122,7 +1149,9 @@ void tsekW_socket_listen(tsekISocket* socket, uint32_t backlog) {
   int success = listen(socket->handle, backlog);
 
   if (success != 0) {
-    fprintf(stderr, "listen failed with error code %d\n", success); 
+#ifdef TSEKI_DEBUG
+    fprintf(stderr, "[WE@tsekW_socket_listen] listen failed with error code %d\n", success); 
+#endif
   }
 }
 
@@ -1171,7 +1200,9 @@ int tsekW_socket_geterror(tsekISocket* socket) { return 0; }
 void tsekW_socket_set_nonblocking(tsekISocket* socket, uint32_t mode) {
   u_long ulm = mode;
   if (ioctlsocket(socket->handle, FIONBIO, &ulm) != NO_ERROR) {
-    printf("ioctlsocket failed setting FIONBIO to mode %d\n", mode);
+#ifdef TSEKI_DEBUG
+    fprintf(stderr, "[WE@tsekW_socket_set_nonblocking] ioctlsocket failed setting FIONBIO to mode %d\n", mode);
+#endif
   }
 }
 
@@ -1187,7 +1218,7 @@ void tsekW_TLS_init(tsekITLSContext* context) {
 int tsekW_TLS_connect(tsekITLSSocket* tls_socket, char* host, tsekISocket* socket, tsekITLSContext* context) {
 
 #ifdef TSEKI_DEBUG
-  printf("Connecting...\n");
+  printf("[WD@tsekW_TLS_connect] Connecting...\n");
 #endif
 
   tls_socket->inner = malloc(sizeof(tsekWTLSSocket));
@@ -1195,7 +1226,7 @@ int tsekW_TLS_connect(tsekITLSSocket* tls_socket, char* host, tsekISocket* socke
   tlsock->socket = socket;
 
 #ifdef TSEKI_DEBUG
-  printf("TLS hostname: %s\n", host);
+  printf("[WD@tsekW_TLS_connect] TLS hostname: %s\n", host);
 #endif
 
   SCHANNEL_CRED credentials = {
@@ -1208,13 +1239,15 @@ int tsekW_TLS_connect(tsekITLSSocket* tls_socket, char* host, tsekISocket* socke
   int succ = AcquireCredentialsHandle(NULL, UNISP_NAME_A, SECPKG_CRED_OUTBOUND, NULL, &credentials, NULL, NULL, &tlsock->credentials, NULL);
 
   if (succ != SEC_E_OK) {
-    printf("Failed Aquiring Credentials\n");
+#ifdef TSEKI_DEBUG
+    fprintf(stderr, "[WE@tsekW_TLS_connect] Failed Aquiring Credentials\n");
+#endif
     tsekW_socket_close(socket);
     return -1;
   }
 
 #ifdef TSEKI_DEBUG
-  printf("Credentials Aquired\n");
+  printf("[WD@tsekW_TLS_connect] Credentials Aquired\n");
 #endif
 
   tlsock->used = tlsock->recieved = tlsock->available = 0;
@@ -1224,13 +1257,13 @@ int tsekW_TLS_connect(tsekITLSSocket* tls_socket, char* host, tsekISocket* socke
   CtxtHandle* handshake_context = 0;
 
 #ifdef TSEKI_DEBUG
-  printf("Starting Loop");
+  printf("[WD@tsekW_TLS_connect] Starting Loop");
 #endif
 
   for (;;) {
 
 #ifdef TSEKI_DEBUG
-    printf("Describing Buffers\n");
+    printf("[WD@tsekW_TLS_connect] Describing Buffers\n");
 #endif
 
     SecBuffer incoming_buffers[2] = {};
@@ -1259,7 +1292,7 @@ int tsekW_TLS_connect(tsekITLSSocket* tls_socket, char* host, tsekISocket* socke
     DWORD flags = ISC_REQ_USE_SUPPLIED_CREDS | ISC_REQ_ALLOCATE_MEMORY | ISC_REQ_CONFIDENTIALITY | ISC_REQ_REPLAY_DETECT | ISC_REQ_SEQUENCE_DETECT | ISC_REQ_STREAM;
 
 #ifdef TSEKI_DEBUG
-    printf("Attempting Handshake\n");
+    printf("[WD@tsekW_TLS_connect] Attempting Handshake\n");
 #endif
 
     SECURITY_STATUS status;
@@ -1278,7 +1311,7 @@ int tsekW_TLS_connect(tsekITLSSocket* tls_socket, char* host, tsekISocket* socke
         NULL);
 
 #ifdef TSEKI_DEBUG
-    printf("Security Context Status %x\n", status);
+    printf("[WD@tsekW_TLS_connect] Security Context Status %x\n", status);
 #endif
 
     handshake_context = &tlsock->context;
@@ -1295,7 +1328,7 @@ int tsekW_TLS_connect(tsekITLSSocket* tls_socket, char* host, tsekISocket* socke
     // Case 1: Handshake Successful!
     if (status == SEC_E_OK) {
 #ifdef TSEKI_DEBUG
-      printf("Handshake Successful!!\n");
+      printf("[WD@tsekW_TLS_connect] Handshake Successful!!\n");
 #endif
       break;
     }
@@ -1356,7 +1389,7 @@ int tsekW_TLS_connect(tsekITLSSocket* tls_socket, char* host, tsekISocket* socke
     DeleteSecurityContext(handshake_context);
     FreeCredentialsHandle(&tlsock->credentials);
     tsekW_socket_close(socket);
-    tsekW_network_cleanup();
+    tsekW_cleanup_network();
     return success;
   }
 
@@ -1399,12 +1432,14 @@ int tsekW_TLS_send(tsekITLSSocket* socket, char* message, uint32_t length) {
 
     // Check for errors
     if (status != SEC_E_OK) {
-      printf("Encryption failed with error code %d\n", status);
+#ifdef TSEKI_DEBUG
+      fprintf(stderr, "[WE@tsekW_TLS_send] Encryption failed with error code %d\n", status);
+#endif
       return -1;
     }
 
 #ifdef TSEKI_DEBUG
-    printf("Encryption Successful!\n");
+    printf("[WD@tsekW_TLS_send] Encryption Successful!\n");
 #endif
 
     int total_used_bytes = send_buffer_sections[0].cbBuffer + send_buffer_sections[1].cbBuffer + send_buffer_sections[2].cbBuffer;
@@ -1433,7 +1468,7 @@ int tsekW_TLS_recv(tsekITLSSocket* socket, char* buffer, uint32_t length) {
   int result = 0;
   tsekWTLSSocket* tlsock = Wget_tls_socket(socket);
 #ifdef TSEKI_DEBUG
-  printf("Recving\n");
+  printf("[WD@tsekW_TLS_recv] Recving\n");
 #endif
 
   while (length > 0) {
@@ -1448,7 +1483,7 @@ int tsekW_TLS_recv(tsekITLSSocket* socket, char* buffer, uint32_t length) {
       length -= bytes_to_read;
       result += bytes_to_read;
 #ifdef TSEKI_DEBUG
-      printf("Pushing Decrypted Data\n");
+      printf("[WD@tsekW_TLS_recv] Pushing Decrypted Data\n");
 #endif
 
       // All decrypted data read (:
@@ -1499,7 +1534,9 @@ int tsekW_TLS_recv(tsekITLSSocket* socket, char* buffer, uint32_t length) {
         // Case 1: Content expired
         else if (status == SEC_I_CONTEXT_EXPIRED) {
           tlsock->recieved = 0;
-          printf("Content Expired\n");
+#ifdef TSEKI_DEBUG
+          printf("[WD@tsekW_TLS_recv] Content Expired\n");
+#endif
           return result;
         }
         // Case 2: Renegotiation required
@@ -1529,7 +1566,9 @@ int tsekW_TLS_recv(tsekITLSSocket* socket, char* buffer, uint32_t length) {
 
       // server disconnect
       if (bytes_recved == 0) {
-        printf("Recv 0 bytes\n");
+#ifdef TSEKI_DEBUG
+        printf("[WD@tsekW_TLS_recv] Recv 0 bytes\n");
+#endif
         return result;
       }
       // error 

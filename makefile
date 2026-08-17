@@ -8,8 +8,11 @@ LDFLAGS_WINDOWS = -lopengl32 -lgdi32 -lwinmm -lws2_32 -lsecur32 -lcrypt32
 
 LDFLAGS = 
 
-DEPS = src/tsekI.h src/tsekG.h src/linux/tsekL.h src/windows/tsekW.h libs/glad.h src/tsekM.h
-OBJS = main.o src/tsekI.o src/tsekG.o src/linux/tsekL.o src/windows/tsekW.o libs/glad.o src/tsekM.o src/tsekF.o
+DEPS = src/tsekI.h src/tsekG.h src/linux/tsekL.h src/windows/tsekW.h libs/glad.h src/tsekM.h src/tsekF.h
+
+OBJS = src/tsekI.o src/tsekG.o src/linux/tsekL.o src/windows/tsekW.o libs/glad.o src/tsekM.o src/tsekF.o
+MAIN_OBJS = main.o $(OBJS)
+TEST_OBJS = test.o $(OBJS)
 
 DEPS_LINUX = 
 DEPS_WINDOWS = 
@@ -24,17 +27,17 @@ CFLAGS_LINUX = -DPLATFORM_LINUX -UPLATFORM_WINDOWS
 ifeq ($(p),)
     UNAME_S := $(shell uname -s)
     ifeq ($(UNAME_S),Linux)
-        p = linux
+        p = l
     endif
     ifeq ($(UNAME_S),Darwin)
-        p = mac
+        p = m
     endif
     ifeq ($(OS),Windows_NT)
-        p = windows
+        p = w
     endif
 endif
 
-ifeq ($(p), windows)
+ifeq ($(p), w)
 	CC = x86_64-w64-mingw32-gcc
 	CFLAGS += $(CFLAGS_WINDOWS)
 	LDFLAGS = $(LDFLAGS_WINDOWS)
@@ -42,7 +45,7 @@ ifeq ($(p), windows)
 	OBJS += $(LIBS_WINDOWS)
 endif
 
-ifeq ($(p), linux)
+ifeq ($(p), l)
 	CFLAGS += $(CFLAGS_LINUX)
 	LDFLAGS = $(LDFLAGS_LINUX)
 	DEPS += $(DEPS_LINUX)
@@ -54,11 +57,14 @@ ifeq ($(d), 1)
 endif
 
 
-.PHONY: all tsekI clean
+.PHONY: all clean
 
-all: tsekI
+all: tsekI test
 
-tsekI: $(OBJS)
+tsekI: $(MAIN_OBJS)
+	$(CC) -o $@ $^ $(LDFLAGS)
+
+test: $(TEST_OBJS)
 	$(CC) -o $@ $^ $(LDFLAGS)
 
 %.o: %.c $(DEPS)

@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include "tsekI.h"
 #include "linux/tsekL.h"
 #include "windows/tsekW.h"

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stdlib.h>
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -196,7 +197,6 @@ typedef struct {
   void (*key_down)(tsekIWindow*, tsekIKeyCode);
   void (*key_type)(tsekIWindow*, tsekIKeyCode);
   void (*key_up)(tsekIWindow*, tsekIKeyCode);
-  void (*key_state)(tsekIWindow*, tsekIKeyCode, bool);
 
   void (*mb_down)(tsekIWindow*, tsekIKeyCode);
   void (*mb_up)(tsekIWindow*, tsekIKeyCode);

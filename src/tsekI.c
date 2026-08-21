@@ -2,17 +2,24 @@
 #include "linux/tsekL.h"
 #include "windows/tsekW.h"
 
+void tsekI_init() {
+#ifdef PLATFORM_LINUX
+  tsekL_init();
+#elif defined(PLATFORM_WINDOWS)
+  tsekW_init();
+#endif
+}
 
-void tsekI_init(
+void tsekI_quickstart(
     tsekIContext* context,
     tsekIWindow* window,
     tsekIWindowInfo* info,
     wchar_t* default_title
 ) {
 #ifdef PLATFORM_LINUX
-    tsekL_init(context, window, info, default_title);
+    tsekL_quickstart(context, window, info, default_title);
 #elif defined(PLATFORM_WINDOWS)
-    tsekW_init(context, window, info, default_title);
+    tsekW_quickstart(context, window, info, default_title);
 #endif
 }
 
@@ -32,11 +39,15 @@ void tsekI_destroy_context(tsekIContext* context) {
 #endif
 }
 
-void tsekI_create_window(tsekIWindow* window, tsekIWindowInfo* info) {
+void tsekI_create_window(
+    tsekIContext* context,
+    tsekIWindow* window,
+    tsekIWindowInfo* info
+) {
 #ifdef PLATFORM_LINUX
-    tsekL_create_window(window, info);
+    tsekL_create_window(context, window, info);
 #elif defined(PLATFORM_WINDOWS)
-    tsekW_create_window(window, info);
+    tsekW_create_window(context, window, info);
 #endif
 }
 
@@ -54,6 +65,7 @@ bool tsekI_is_window_closed(tsekIWindow* window) {
 #elif defined(PLATFORM_WINDOWS)
     return tsekW_is_window_closed(window);
 #endif
+    return false;
 }
 
 bool tsekI_update_window(tsekIWindow* window) {
@@ -62,39 +74,48 @@ bool tsekI_update_window(tsekIWindow* window) {
 #elif defined(PLATFORM_WINDOWS)
     return tsekW_update_window(window);
 #endif
+    return false;
 }
 
-double tsekI_get_time() {
+double tsekI_get_time(tsekIContext* context) {
 #ifdef PLATFORM_LINUX
-    return tsekL_get_time();
+    return tsekL_get_time(context);
 #elif defined(PLATFORM_WINDOWS)
-    return tsekW_get_time();
+    return tsekW_get_time(context);
 #endif
     return 0.0;
 }
 
-double tsekI_get_fixed_time() {
+double tsekI_get_fixed_time(tsekIContext* context) {
 #ifdef PLATFORM_LINUX
-    return tsekL_get_fixed_time();
+    return tsekL_get_fixed_time(context);
 #elif defined(PLATFORM_WINDOWS)
-    return tsekW_get_fixed_time();
+    return tsekW_get_fixed_time(context);
 #endif
     return 0.0;
 }
 
-void tsekI_set_time(double time) {
+void tsekI_set_time(
+    tsekIContext* context,
+    double time
+) {
 #ifdef PLATFORM_LINUX
-    tsekL_set_time(time);
+    tsekL_set_time(context, time);
 #elif defined(PLATFORM_WINDOWS)
-    tsekW_set_time(time);
+    tsekW_set_time(context, time);
 #endif
 }
 
-void tsekI_allocate_time(double framerate, double start, double end) {
+void tsekI_allocate_time(
+    tsekIContext* context,
+    double framerate,
+    double start,
+    double end
+) {
 #ifdef PLATFORM_LINUX
-    tsekL_allocate_time(framerate, start, end);
+    tsekL_allocate_time(context, framerate, start, end);
 #elif defined(PLATFORM_WINDOWS)
-    tsekW_allocate_time(framerate, start, end);
+    tsekW_allocate_time(context, framerate, start, end);
 #endif
 }
 
@@ -107,7 +128,10 @@ bool tsekI_get_cursor_visible(tsekIWindow* window) {
     return false;
 }
 
-void tsekI_set_cursor_visible(tsekIWindow* window, bool active) {
+void tsekI_set_cursor_visible(
+    tsekIWindow* window,
+    bool active
+) {
 #ifdef PLATFORM_LINUX
     tsekL_set_cursor_visible(window, active);
 #elif defined(PLATFORM_WINDOWS)
@@ -181,11 +205,11 @@ void tsekI_get_address_info(
 #endif
 }
 
-void tsekI_display_addrinfo(tsekIAddressInfo* info) {
+void tsekI_unpack_address_info(tsekIAddressInfo* info, char** ip, uint32_t* port) {
 #ifdef PLATFORM_LINUX
-    tsekL_display_addrinfo(info);
+  tsekL_unpack_address_info(info, ip, port);
 #elif defined(PLATFORM_WINDOWS)
-    tsekW_display_addrinfo(info);
+  tsekW_unpack_address_info(info, ip, port);
 #endif
 }
 
@@ -314,6 +338,7 @@ void tsekI_socket_set_nonblocking(
     tsekW_socket_set_nonblocking(socket, mode);
 #endif
 }
+
 
 // TLS
 

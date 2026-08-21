@@ -5,8 +5,8 @@
 
 #include "../tsekI.h"
 #include <winsock2.h>
-#include <windows.h>
 #include <ws2tcpip.h>
+#include <windows.h>
 #include <security.h>
 #include <schannel.h>
 #include "../../libs/glad.h"
@@ -15,6 +15,8 @@
 #pragma comment(lib, "secur32.lib")
 
 typedef struct {
+  tsekIContext* context;
+
   HWND handle;
   HGLRC glContext;
   HDC deviceContext;
@@ -27,6 +29,8 @@ typedef struct {
   tsekIWindowState prevState;
 
   float mouse_deltas[2];
+
+  bool isCursorVisible;
 } tsekWWindow;
 
 typedef struct {
@@ -35,26 +39,25 @@ typedef struct {
   LARGE_INTEGER time;
   LARGE_INTEGER fixed_time;
   LARGE_INTEGER freq;
-
-  bool isCursorVisible;
 } tsekWContext;
 
-void tsekW_init(tsekIContext*, tsekIWindow*, tsekIWindowInfo*, wchar_t* default_title);
+void tsekW_init();
+void tsekW_quickstart(tsekIContext*, tsekIWindow*, tsekIWindowInfo*, wchar_t* default_title);
 
 void tsekW_fill_context(tsekIContext* context);
 void tsekW_destroy_context(tsekIContext* context);
 
-void tsekW_create_window(tsekIWindow* window, tsekIWindowInfo* info);
+void tsekW_create_window(tsekIContext*, tsekIWindow* window, tsekIWindowInfo* info);
 void tsekW_destroy_window(tsekIWindow* window);
 
 bool tsekW_is_window_closed(tsekIWindow*);
 bool tsekW_update_window(tsekIWindow* window);
 
-double tsekW_get_time();
-double tsekW_get_fixed_time();
+double tsekW_get_time(tsekIContext*);
+double tsekW_get_fixed_time(tsekIContext*);
 
-void tsekW_set_time(double time);
-void tsekW_allocate_time(double framerate, double start, double end);
+void tsekW_set_time(tsekIContext*, double time);
+void tsekW_allocate_time(tsekIContext*, double framerate, double start, double end);
 
 bool tsekW_get_cursor_visible(tsekIWindow*);
 void tsekW_set_cursor_visible(tsekIWindow*, bool);
@@ -80,7 +83,7 @@ void tsekW_init_network();
 void tsekW_cleanup_network();
 
 void tsekW_get_address_info(char* url, uint32_t port, tsekIAddressInfo* info);
-void tsekW_display_addrinfo(tsekIAddressInfo* info);
+void tsekW_unpack_address_info(tsekIAddressInfo* info, char** ip, uint32_t* port);
 void tsekW_destroy_address_info(tsekIAddressInfo* info);
 void tsekW_socket_create(tsekISocket* socket);
 void tsekW_socket_close(tsekISocket* socket);

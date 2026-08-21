@@ -37,17 +37,10 @@ void GtsekI_callback(tsekIWindow* window, uint32_t width, uint32_t height) {
 void tsekG_surface_register_resize(tsekSurface* surface) {
   switch (surface->type) {
     case TSEKI_WINDOW: {
-      tsekCallbacks* callbacks;
-      tsekI_get_window_param(surface->content->tsekIWindow, CALLBACKS, &callbacks);
-      callbacks->tsegsize = GtsekI_callback;
-
-      tsekIPos d;
-      tsekI_get_window_param(surface->content->tsekIWindow, WINDOW_DIM, &d);
-
-      d.x += 1;
-      tsekI_set_window_param(surface->content->tsekIWindow, WINDOW_DIM, &d);
-      d.x -= 1;
-      tsekI_set_window_param(surface->content->tsekIWindow, WINDOW_DIM, &d);
+      tsekICallbacks callbacks;
+      tsekI_get_param(surface->content->tsekIWindow, TSEKI_CALLBACKS, &callbacks);
+      callbacks.tsekG_size = GtsekI_callback;
+      tsekI_set_param(surface->content->tsekIWindow, TSEKI_CALLBACKS, &callbacks);
     }
   }
 }

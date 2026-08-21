@@ -6,6 +6,7 @@
 
 #define TSEKI_MAX_KEYMAP_SIZE 256
 #define TSEKI_TARGET_FRAMERATE 60
+#define TSEKI_IP_BUFFER_SIZE 20
 
 #ifdef TSEKX_DEBUG
 #define TSEKI_DEBUG
@@ -164,6 +165,8 @@ typedef enum {
 
   TSEKI_WINDOW_STATE,
   TSEKI_MOUSE_DELTA,
+
+  TSEKI_CONTEXT_REFERENCE,
 } tsekIWindowParam;
 
 typedef struct {
@@ -211,22 +214,23 @@ typedef struct {
   uint32_t x, y, width, height;
 } tsekIRect;
 
-void tsekI_init(tsekIContext*, tsekIWindow*, tsekIWindowInfo*, wchar_t* default_title);
+void tsekI_init();
+void tsekI_quickstart(tsekIContext*, tsekIWindow*, tsekIWindowInfo*, wchar_t* default_title);
 
 void tsekI_fill_context(tsekIContext* context);
 void tsekI_destroy_context(tsekIContext* context);
 
-void tsekI_create_window(tsekIWindow* window, tsekIWindowInfo* info);
+void tsekI_create_window(tsekIContext*, tsekIWindow* window, tsekIWindowInfo* info);
 void tsekI_destroy_window(tsekIWindow* window);
 
 bool tsekI_is_window_closed(tsekIWindow*);
 bool tsekI_update_window(tsekIWindow* window);
 
-double tsekI_get_time();
-double tsekI_get_fixed_time();
+double tsekI_get_time(tsekIContext*);
+double tsekI_get_fixed_time(tsekIContext*);
 
-void tsekI_set_time(double time);
-void tsekI_allocate_time(double framerate, double start, double end);
+void tsekI_set_time(tsekIContext*, double time);
+void tsekI_allocate_time(tsekIContext*, double framerate, double start, double end);
 
 bool tsekI_get_cursor_visible(tsekIWindow*);
 void tsekI_set_cursor_visible(tsekIWindow*, bool);
@@ -238,8 +242,8 @@ void tsekI_swap_buffers(tsekIWindow*);
 void tsekI_get_param(tsekIWindow* window, tsekIWindowParam param, void* out);
 void tsekI_set_param(tsekIWindow* window, tsekIWindowParam param, void* in);
 
-
 // networking
+
 
 typedef struct {
   uint32_t handle;
@@ -249,11 +253,19 @@ typedef struct {
   void* inner;
 } tsekIAddressInfo;
 
+typedef enum {
+    TSEKI_SOCKET_NONE = 0,
+    TSEKI_SOCKET_OOB = 1 << 0,
+    TSEKI_SOCKET_DONTROUTE = 1 << 1,
+    TSEKI_SOCKET_PEEK = 1 << 2,
+    TSEKI_SOCKET_WAITALL = 1 << 3,
+} tsekISocketFlags;
+
 void tsekI_init_network();
 void tsekI_cleanup_network();
 
 void tsekI_get_address_info(char* url, uint32_t port, tsekIAddressInfo* info);
-void tsekI_display_addrinfo(tsekIAddressInfo* info);
+void tsekI_unpack_address_info(tsekIAddressInfo* info, char** ip, uint32_t* port);
 void tsekI_destroy_address_info(tsekIAddressInfo* info);
 void tsekI_socket_create(tsekISocket* socket);
 void tsekI_socket_close(tsekISocket* socket);
@@ -264,19 +276,11 @@ void tsekI_socket_bind(tsekISocket* socket, tsekIAddressInfo* address);
 void tsekI_socket_listen(tsekISocket* socket, uint32_t backlog);
 void tsekI_socket_accept(tsekISocket* server, tsekISocket* client, tsekIAddressInfo* address);
 
-// client 
+// client
 
 void tsekI_socket_connect(tsekISocket* socket, tsekIAddressInfo* address);
 
 // messaging
-
-typedef enum {
-    TSEKI_SOCKET_NONE = 0,
-    TSEKI_SOCKET_OOB = 1 << 0,
-    TSEKI_SOCKET_DONTROUTE = 1 << 1,
-    TSEKI_SOCKET_PEEK = 1 << 2,
-    TSEKI_SOCKET_WAITALL = 1 << 3,
-} tsekISocketFlags;
 
 int32_t tsekI_socket_send(tsekISocket* socket, char* message, uint32_t length, uint32_t flags);
 int32_t tsekI_socket_recv(tsekISocket* socket, char* message, uint32_t length, uint32_t flags);
@@ -284,7 +288,7 @@ int32_t tsekI_socket_recv(tsekISocket* socket, char* message, uint32_t length, u
 int32_t tsekI_socket_geterror(tsekISocket* socket);
 void tsekI_socket_set_nonblocking(tsekISocket* socket, uint32_t mode);
 
-// TLS 
+// TLS
 
 typedef struct {
   void* context;
@@ -300,5 +304,3 @@ int32_t tsekI_TLS_send(tsekITLSSocket* socket, char* message, uint32_t length);
 int32_t tsekI_TLS_recv(tsekITLSSocket* socket, char* buffer, uint32_t length);
 void tsekI_TLS_destroy_socket(tsekITLSSocket* tls_socket, tsekISocket* socket);
 void tsekI_TLS_destroy_context(tsekITLSContext* context);
-
-// TODO: Add TLS server functions

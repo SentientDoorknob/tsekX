@@ -5,9 +5,7 @@
 #include <GL/wglext.h>
 #include <GL/wgl.h>
 #include <schannel.h>
-#include <ws2tcpip.h>
 
-tsekWContext* globalContext;
 int keycode_map[TSEKI_MAX_KEYMAP_SIZE];
 
 void Wcreate_dummy_window(tsekIWindow* window);
@@ -379,7 +377,7 @@ void Wregister_windowclass(tsekIWindowInfo* info) {
   windowClassInfo.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
   windowClassInfo.lpszMenuName = NULL;
   windowClassInfo.lpszClassName = className,
-  windowClassInfo.hInstance = globalContext->hInstance;
+  windowClassInfo.hInstance = Wget_hInstance();
   windowClassInfo.lpfnWndProc = Wproc_window;
 
 #ifdef TSEKI_DEBUG
@@ -527,10 +525,12 @@ void Wcreate_tsekG_context(tsekIPixelFormat* format, tsekIWindow* window) {
   }
 }
 
-
-void tsekW_init(tsekIContext* context, tsekIWindow* window, tsekIWindowInfo* info, wchar_t* defaultTitle) {
-
+void tsekW_init() {
   init_windows_keycode_map();
+  Wload_gl();
+}
+
+void tsekW_quickstart(tsekIContext* context, tsekIWindow* window, tsekIWindowInfo* info, wchar_t* defaultTitle) {
 
   tsekW_fill_context(context);
 
@@ -551,26 +551,11 @@ void tsekW_init(tsekIContext* context, tsekIWindow* window, tsekIWindowInfo* inf
     info = &defaultInfo;
   }
 
-#ifdef TSEKI_DEBUG
-  printf("[WD@tsekW_init] About to load opengl...\n");
-#endif
-
-  Wload_gl();
-
-#ifdef TSEKI_DEBUG
-  printf("[WD@tsekW_init] Loaded Opengl\n");
-#endif
-
-  Wregister_windowclass(info);
-
-#ifdef TSEKI_DEBUG
-  printf("[WD@tsekW_init] Window Class Registered\n");
-#endif
-
-  tsekW_create_window(window, info);
+  tsekW_create_window(context, window, info);
 }
 
 void tsekW_fill_context(tsekIContext* context) {
+
   context->inner = malloc(sizeof(tsekWContext));
 
   tsekWContext* wcontext = Wget_context(context);
@@ -585,10 +570,6 @@ void tsekW_fill_context(tsekIContext* context) {
   QueryPerformanceCounter(&wcontext->time);
   QueryPerformanceCounter(&wcontext->fixed_time);
   QueryPerformanceFrequency(&wcontext->freq);
-
-  wcontext->isCursorVisible = true;
-
-  globalContext = wcontext;
 }
 
 void tsekW_destroy_context(tsekIContext* context) {
@@ -596,7 +577,7 @@ void tsekW_destroy_context(tsekIContext* context) {
 }
 
 void Wcreate_dummy_window(tsekIWindow* window) {
-    HINSTANCE hInstance = globalContext->hInstance;
+    HINSTANCE hInstance = Wget_hInstance();
     window->inner = calloc(1, sizeof(tsekWWindow));
 
     Wregister_windowclass(&(tsekIWindowInfo){});
@@ -635,9 +616,13 @@ void Wcreate_dummy_window(tsekIWindow* window) {
     }
 }
 
-void tsekW_create_window(tsekIWindow* window, tsekIWindowInfo* info) {
+void tsekW_create_window(tsekIContext* context, tsekIWindow* window, tsekIWindowInfo* info) {
   window->inner = calloc(1, sizeof(tsekWWindow));
   tsekWWindow* wwindow = Wget_window(window);
+  wwindow->context = context;
+  wwindow->isCursorVisible = true;
+
+  Wregister_windowclass(info);
 
   wchar_t* className;
   Wget_class_name(info->classId, &className);
@@ -650,7 +635,7 @@ void tsekW_create_window(tsekIWindow* window, tsekIWindowInfo* info) {
       info->x, info->y,
       info->width, info->height,
       NULL, NULL,
-      globalContext->hInstance,
+      Wget_context(context)->hInstance,
       window
       );
 
@@ -745,28 +730,28 @@ bool tsekW_update_window(tsekIWindow* window) {
   return true;
 }
 
-double tsekW_get_time() {
+double tsekW_get_time(tsekIContext* context) {
   LARGE_INTEGER end;
   QueryPerformanceCounter(&end);
 
-  return (double)(end.QuadPart - globalContext->time.QuadPart) / globalContext->freq.QuadPart;
+  return (double)(end.QuadPart - Wget_context(context)->time.QuadPart) / Wget_context(context)->freq.QuadPart;
 }
 
-double tsekW_get_fixed_time() {
+double tsekW_get_fixed_time(tsekIContext* context) {
   LARGE_INTEGER end;
   QueryPerformanceCounter(&end);
 
-  return (double)(end.QuadPart - globalContext->fixed_time.QuadPart) / globalContext->freq.QuadPart;
+  return (double)(end.QuadPart - Wget_context(context)->fixed_time.QuadPart) / Wget_context(context)->freq.QuadPart;
 }
 
-void tsekW_set_time(double time) {
+void tsekW_set_time(tsekIContext* context, double time) {
   LARGE_INTEGER curr;
   QueryPerformanceCounter(&curr);
 
-  globalContext->time.QuadPart = (curr.QuadPart - time * globalContext->freq.QuadPart);
+  Wget_context(context)->time.QuadPart = (curr.QuadPart - time * Wget_context(context)->freq.QuadPart);
 }
 
-void tsekW_allocate_time(double framerate, double start, double end) {
+void tsekW_allocate_time(tsekIContext* context, double framerate, double start, double end) {
   timeBeginPeriod(1);
 
   double frametime = 1000 / framerate;
@@ -784,14 +769,13 @@ void tsekW_allocate_time(double framerate, double start, double end) {
 
 
 bool tsekW_get_cursor_visible(tsekIWindow* window) {
-  return globalContext->isCursorVisible;
+  return Wget_window(window)->isCursorVisible;
 }
 
 void tsekW_set_cursor_visible(tsekIWindow* window, bool visible) {
   ShowCursor(visible);
-  globalContext->isCursorVisible = visible;
+  Wget_window(window)->isCursorVisible = visible;
 }
-
 
 void tsekW_swap_buffers(tsekIWindow* window) {
   SwapBuffers(Wget_window(window)->deviceContext);
@@ -915,6 +899,12 @@ void tsekW_get_param(tsekIWindow* window, tsekIWindowParam param, void* out) {
       memcpy(deltas, Wget_window(window)->mouse_deltas, 2 * sizeof(float));
       break;
     }
+    
+    case TSEKI_CONTEXT_REFERENCE: {
+      tsekIContext** context = out;
+      *context = Wget_window(window)->context;
+      break;
+    }
   }
 }
 
@@ -995,6 +985,12 @@ void tsekW_set_param(tsekIWindow* window, tsekIWindowParam param, void* in) {
 #ifdef TSEKI_DEBUG
       fprintf(stderr, "[WI@tsekI_set_param] Mouse Deltas are Read Only\n");
 #endif
+      break;
+    }
+
+    case TSEKI_CONTEXT_REFERENCE: {
+      tsekIContext** context = in;
+      wwindow->context = *context;
       break;
     }
   }
@@ -1108,11 +1104,12 @@ void tsekW_get_address_info(char* url, uint32_t port, tsekIAddressInfo* info) {
   }
 }
 
-void tsekW_display_addrinfo(tsekIAddressInfo* info) {
+void tsekW_unpack_address_info(tsekIAddressInfo* info, char** ip, uint32_t* port) {
   tsekWAddressInfo* address = Wget_address_info(info);
   struct sockaddr_in* addrin = (struct sockaddr_in*)address->info->ai_addr;
-  char ip[INET_ADDRSTRLEN];
-  inet_ntop(address->info->ai_family, &(addrin->sin_addr), ip, INET_ADDRSTRLEN);
+  inet_ntop(address->info->ai_family, &(addrin->sin_addr), *ip, TSEKI_IP_BUFFER_SIZE);
+
+  *port = ntohs(addrin->sin_port);
 
 #ifdef TSEKI_DEBUG
   printf("\nSOCKET ADDRINFO\n-=-=-=-=-=-=-\nIP: %s\nPort: %d\n\n", ip, ntohs(addrin->sin_port));
@@ -1520,6 +1517,7 @@ int tsekW_TLS_recv(tsekITLSSocket* socket, char* buffer, uint32_t length) {
             ARRAYSIZE(incoming_buffers),
             incoming_buffers,
         };
+
 
         SECURITY_STATUS status = DecryptMessage(&tlsock->context, &incoming_buffers_descriptor, 0, NULL);
 

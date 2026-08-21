@@ -5,6 +5,9 @@
 void OnKeyDown(tsekIWindow* window, tsekIKeyCode key) {
   printf("OnKeyDown %d\n", key);
 
+  tsekIContext* context;
+  tsekI_get_param(window, TSEKI_CONTEXT_REFERENCE, &context);
+
   if (key == TSEKI_T) {
     tsekIRect window_rect;
     tsekIRect client_rect;
@@ -24,24 +27,30 @@ void OnKeyDown(tsekIWindow* window, tsekIKeyCode key) {
     tsekI_get_param(window, TSEKI_WINDOW_STATE, &state);
     tsekI_get_param(window, TSEKI_MOUSE_DELTA, mouse_deltas);
 
-    double time = tsekI_get_time();
-    double fixed_time = tsekI_get_fixed_time();
+    double time = tsekI_get_time(context);
+    double fixed_time = tsekI_get_fixed_time(context);
 
     printf("\nWINDOW INFO\n-=-=-=-=-=-=-=-=-=\nWindow Rect: (%d, %d) %dx%d\n"
         "Client Rect: (%d, %d) %dx%d\n"
         "Cursorpos: D(%d, %d) W(%d, %d) C(%d, %d)\n"
         "Window State: %d\n"
         "Mouse Deltas: (%d, %d)\n"
-        "Time: %fs (%fs)\n\n",
+        "Time: %fs (%fs)\n"
+        "Cursor Visible: %s\n\n",
         window_rect.x, window_rect.y, window_rect.width, window_rect.height,
         client_rect.x, client_rect.y, client_rect.width, client_rect.height,
         cursorpos_d[0], cursorpos_d[1], cursorpos_w[0], cursorpos_w[1], cursorpos_c[0], cursorpos_c[1],
         state, mouse_deltas[0], mouse_deltas[1],
-        time, fixed_time);
+        time, fixed_time,
+        tsekI_get_cursor_visible(window) ? "true" : "false");
   }
 
   if (key == TSEKI_S) {
-    tsekI_set_time(0);
+    tsekI_set_time(context, 0);
+  }
+
+  if (key == TSEKI_ESCAPE) {
+    tsekI_destroy_window(window);
   }
 }
 
@@ -74,13 +83,17 @@ void OnWindowStateChange(tsekIWindow* window, tsekIWindowState state) {
 }
 
 void tsekI() {
-  printf("Testing Instructions:\n\n"
-      "s -> reset time\n"
-      "t -> print all printable window params\n\n");
+  printf("Testing Instructions:\n"
+      "\ts -> reset time\n"
+      "\tt -> print all printable window params\n\n");
   tsekIContext context;
   tsekIWindow window;
 
-  tsekI_init(&context, &window, NULL, L"Title");
+  tsekI_init();
+  tsekI_quickstart(&context, &window, NULL, L"Title");
+
+  int* keymap;
+  tsekI_get_param(&window, TSEKI_KEYMAP_REFERENCE, &keymap);
 
   tsekICallbacks callbacks = {
     .key_down = OnKeyDown,
@@ -105,7 +118,7 @@ void tsekI() {
 int main(int argc, char** argv) {
 
   if (argc != 2) {
-    fprintf(stderr, "Incorrect Usage. \nCorrect Usage: %s [test type]\n", argv[0]);
+    fprintf(stderr, "Incorrect Usage. \nCorrect Usage: %s [test type]\n\nAvailable Tests:\n\t. 'window' - debugs all windowing capabilities of tsekI\n", argv[0]);
     return 2;
   }
 

@@ -1,14 +1,21 @@
+#include <X11/extensions/XI2.h>
 #ifdef PLATFORM_LINUX
 
 #include "../tsekI.h"
-#include "../tsekG.h"
-#include <math.h>
+#include "tsekL.h"
 #include <netdb.h>
 #include <unistd.h>
-#include <stdio.h>
-#include "tsekL.h"
+
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
+#include <X11/X.h>
+#include <X11/extensions/XKBstr.h>
+#include <X11/extensions/XInput2.h>
+#include <X11/Xatom.h>
+
+#include <complex.h>
+#include <openssl/x509_vfy.h>
+
 #include <string.h>
 #include <linux/input-event-codes.h>
 #include <X11/Xresource.h>
@@ -22,639 +29,864 @@
 #include <openssl/err.h>
 #include <fcntl.h>
 
-tsekLContext* globalContext;
+#include <GL/glxext.h>
+#include "../../libs/glad.h"
 
-static tsekKeyCode keycode_map[MAX_LINUX_KEYCODE + 1];
+typedef GLXContext (*glXCreateContextAttribsARBProc)( Display*, GLXFBConfig, GLXContext, Bool, const int*);
+
+tsekIKeyCode keycode_map[TSEKI_MAX_KEYMAP_SIZE];
 
 tsekLContext* Lget_context(tsekIContext* context) {
-  return (tsekLContext*)context->inner;
+	return context->inner;
 }
 
 tsekLWindow* Lget_window(tsekIWindow* window) {
-  return (tsekLWindow*)window->inner;
+	return window->inner;
 }
 
 void Linit_keycode_map() {
-  for (int i = 0; i <= MAX_LINUX_KEYCODE; i++)
-    keycode_map[i] = TSEK_NONE;
+	for (int i = 0; i < TSEKI_MAX_KEYMAP_SIZE; i++) {
+		keycode_map[i] = TSEKI_NONE;
+	}
 
-  // Letters (X11 keycodes may vary per keyboard layout)
-  keycode_map[38] = TSEK_A;
-  keycode_map[56] = TSEK_B;
-  keycode_map[54] = TSEK_C;
-  keycode_map[40] = TSEK_D;
-  keycode_map[26] = TSEK_E;
-  keycode_map[41] = TSEK_F;
-  keycode_map[42] = TSEK_G;
-  keycode_map[43] = TSEK_H;
-  keycode_map[31] = TSEK_I;
-  keycode_map[44] = TSEK_J;
-  keycode_map[45] = TSEK_K;
-  keycode_map[46] = TSEK_L;
-  keycode_map[58] = TSEK_M;
-  keycode_map[57] = TSEK_N;
-  keycode_map[32] = TSEK_O;
-  keycode_map[33] = TSEK_P;
-  keycode_map[24] = TSEK_Q;
-  keycode_map[27] = TSEK_R;
-  keycode_map[39] = TSEK_S;
-  keycode_map[28] = TSEK_T;
-  keycode_map[30] = TSEK_U;
-  keycode_map[55] = TSEK_V;
-  keycode_map[25] = TSEK_W;
-  keycode_map[53] = TSEK_X;
-  keycode_map[29] = TSEK_Y;
-  keycode_map[52] = TSEK_Z;
 
-  // Numbers
-  keycode_map[10] = TSEK_1;
-  keycode_map[11] = TSEK_2;
-  keycode_map[12] = TSEK_3;
-  keycode_map[13] = TSEK_4;
-  keycode_map[14] = TSEK_5;
-  keycode_map[15] = TSEK_6;
-  keycode_map[16] = TSEK_7;
-  keycode_map[17] = TSEK_8;
-  keycode_map[18] = TSEK_9;
-  keycode_map[19] = TSEK_0;
+	keycode_map[38] = TSEKI_A;
+	keycode_map[56] = TSEKI_B;
+	keycode_map[54] = TSEKI_C;
+	keycode_map[40] = TSEKI_D;
+	keycode_map[26] = TSEKI_E;
+	keycode_map[41] = TSEKI_F;
+	keycode_map[42] = TSEKI_G;
+	keycode_map[43] = TSEKI_H;
+	keycode_map[31] = TSEKI_I;
+	keycode_map[44] = TSEKI_J;
+	keycode_map[45] = TSEKI_K;
+	keycode_map[46] = TSEKI_L;
+	keycode_map[58] = TSEKI_M;
+	keycode_map[57] = TSEKI_N;
+	keycode_map[32] = TSEKI_O;
+	keycode_map[33] = TSEKI_P;
+	keycode_map[24] = TSEKI_Q;
+	keycode_map[27] = TSEKI_R;
+	keycode_map[39] = TSEKI_S;
+	keycode_map[28] = TSEKI_T;
+	keycode_map[30] = TSEKI_U;
+	keycode_map[55] = TSEKI_V;
+	keycode_map[25] = TSEKI_W;
+	keycode_map[53] = TSEKI_X;
+	keycode_map[29] = TSEKI_Y;
+	keycode_map[52] = TSEKI_Z;
 
-  // Symbols
-  keycode_map[20] = TSEK_MINUS;        // -
-  keycode_map[21] = TSEK_EQUAL;        // =
-  keycode_map[34] = TSEK_LEFTBRACKET;  // [
-  keycode_map[35] = TSEK_RIGHTBRACKET; // ]
-  keycode_map[51] = TSEK_BACKSLASH;    // \
-  keycode_map[47] = TSEK_SEMICOLON;    // ;
-  keycode_map[48] = TSEK_APOSTROPHE;   // '
-  keycode_map[49] = TSEK_GRAVE;        // `
-  keycode_map[59] = TSEK_COMMA;        // ,
-  keycode_map[60] = TSEK_PERIOD;       // .
-  keycode_map[61] = TSEK_SLASH;        // /
+	// Numbers
+	keycode_map[10] = TSEKI_1;
+	keycode_map[11] = TSEKI_2;
+	keycode_map[12] = TSEKI_3;
+	keycode_map[13] = TSEKI_4;
+	keycode_map[14] = TSEKI_5;
+	keycode_map[15] = TSEKI_6;
+	keycode_map[16] = TSEKI_7;
+	keycode_map[17] = TSEKI_8;
+	keycode_map[18] = TSEKI_9;
+	keycode_map[19] = TSEKI_0;
 
-  // Control keys
-  keycode_map[36] = TSEK_ENTER;      // Return
-  keycode_map[9]  = TSEK_ESCAPE;
-  keycode_map[22] = TSEK_BACKSPACE;
-  keycode_map[23] = TSEK_TAB;
-  keycode_map[65] = TSEK_SPACE;
-  keycode_map[66] = TSEK_CAPSLOCK;
+	// Symbols
+	keycode_map[20] = TSEKI_MINUS;        // -
+	keycode_map[21] = TSEKI_EQUAL;        // =
+	keycode_map[34] = TSEKI_LEFTBRACKET;  // [
+	keycode_map[35] = TSEKI_RIGHTBRACKET; // ]
+	keycode_map[51] = TSEKI_BACKSLASH;    // \
+	keycode_map[47] = TSEKI_SEMICOLON;    // ;
+	keycode_map[48] = TSEKI_APOSTROPHE;   // '
+	keycode_map[49] = TSEKI_GRAVE;        // `
+	keycode_map[59] = TSEKI_COMMA;        // ,
+	keycode_map[60] = TSEKI_PERIOD;       // .
+	keycode_map[61] = TSEKI_SLASH;        // /
 
-  // Function keys
-  keycode_map[67] = TSEK_F1;
-  keycode_map[68] = TSEK_F2;
-  keycode_map[69] = TSEK_F3;
-  keycode_map[70] = TSEK_F4;
-  keycode_map[71] = TSEK_F5;
-  keycode_map[72] = TSEK_F6;
-  keycode_map[73] = TSEK_F7;
-  keycode_map[74] = TSEK_F8;
-  keycode_map[75] = TSEK_F9;
-  keycode_map[76] = TSEK_F10;
-  keycode_map[95] = TSEK_F11;
-  keycode_map[96] = TSEK_F12;
+	// Control keys
+	keycode_map[36] = TSEKI_ENTER;      // Return
+	keycode_map[9]  = TSEKI_ESCAPE;
+	keycode_map[22] = TSEKI_BACKSPACE;
+	keycode_map[23] = TSEKI_TAB;
+	keycode_map[65] = TSEKI_SPACE;
+	keycode_map[66] = TSEKI_CAPSLOCK;
 
-  // Arrow keys
-  keycode_map[113] = TSEK_LEFT;
-  keycode_map[111] = TSEK_UP;
-  keycode_map[114] = TSEK_RIGHT;
-  keycode_map[116] = TSEK_DOWN;
+	// Function keys
+	keycode_map[67] = TSEKI_F1;
+	keycode_map[68] = TSEKI_F2;
+	keycode_map[69] = TSEKI_F3;
+	keycode_map[70] = TSEKI_F4;
+	keycode_map[71] = TSEKI_F5;
+	keycode_map[72] = TSEKI_F6;
+	keycode_map[73] = TSEKI_F7;
+	keycode_map[74] = TSEKI_F8;
+	keycode_map[75] = TSEKI_F9;
+	keycode_map[76] = TSEKI_F10;
+	keycode_map[95] = TSEKI_F11;
+	keycode_map[96] = TSEKI_F12;
 
-  // Modifier keys
-  keycode_map[50]  = TSEK_LEFTSHIFT;
-  keycode_map[62]  = TSEK_RIGHTSHIFT;
-  keycode_map[37]  = TSEK_LEFTCTRL;
-  keycode_map[105] = TSEK_RIGHTCTRL;
-  keycode_map[64]  = TSEK_LEFTALT;
-  keycode_map[108] = TSEK_RIGHTALT;
-  keycode_map[133] = TSEK_LEFTMETA;
-  keycode_map[134] = TSEK_RIGHTMETA;
+	// Arrow keys
+	keycode_map[113] = TSEKI_LEFT;
+	keycode_map[111] = TSEKI_UP;
+	keycode_map[114] = TSEKI_RIGHT;
+	keycode_map[116] = TSEKI_DOWN;
 
-  // Numpad keys
-  keycode_map[90]  = TSEK_NUMPAD0;
-  keycode_map[87]  = TSEK_NUMPAD1;
-  keycode_map[88]  = TSEK_NUMPAD2;
-  keycode_map[89]  = TSEK_NUMPAD3;
-  keycode_map[83]  = TSEK_NUMPAD4;
-  keycode_map[84]  = TSEK_NUMPAD5;
-  keycode_map[85]  = TSEK_NUMPAD6;
-  keycode_map[79]  = TSEK_NUMPAD7;
-  keycode_map[80]  = TSEK_NUMPAD8;
-  keycode_map[81]  = TSEK_NUMPAD9;
-  keycode_map[91]  = TSEK_NUMPADDECIMAL;
-  keycode_map[104] = TSEK_NUMPADENTER;
-  keycode_map[86]  = TSEK_NUMPADADD;
-  keycode_map[82]  = TSEK_NUMPADSUBTRACT;
-  keycode_map[63]  = TSEK_NUMPADMULTIPLY;
-  keycode_map[106] = TSEK_NUMPADDIVIDE;
+	// Modifier keys
+	keycode_map[50]  = TSEKI_LEFTSHIFT;
+	keycode_map[62]  = TSEKI_RIGHTSHIFT;
+	keycode_map[37]  = TSEKI_LEFTCTRL;
+	keycode_map[105] = TSEKI_RIGHTCTRL;
+	keycode_map[64]  = TSEKI_LEFTALT;
+	keycode_map[108] = TSEKI_RIGHTALT;
+	keycode_map[133] = TSEKI_LEFTMETA;
+	keycode_map[134] = TSEKI_RIGHTMETA;
 
-  // Editing/navigation
-  keycode_map[118] = TSEK_INSERT;
-  keycode_map[119] = TSEK_DELETE;
-  keycode_map[110] = TSEK_HOME;
-  keycode_map[115] = TSEK_END;
-  keycode_map[112] = TSEK_PAGEUP;
-  keycode_map[117] = TSEK_PAGEDOWN;
+	// Numpad keys
+	keycode_map[90]  = TSEKI_NUMPAD0;
+	keycode_map[87]  = TSEKI_NUMPAD1;
+	keycode_map[88]  = TSEKI_NUMPAD2;
+	keycode_map[89]  = TSEKI_NUMPAD3;
+	keycode_map[83]  = TSEKI_NUMPAD4;
+	keycode_map[84]  = TSEKI_NUMPAD5;
+	keycode_map[85]  = TSEKI_NUMPAD6;
+	keycode_map[79]  = TSEKI_NUMPAD7;
+	keycode_map[80]  = TSEKI_NUMPAD8;
+	keycode_map[81]  = TSEKI_NUMPAD9;
+	keycode_map[91]  = TSEKI_NUMPADDECIMAL;
+	keycode_map[104] = TSEKI_NUMPADENTER;
+	keycode_map[86]  = TSEKI_NUMPADADD;
+	keycode_map[82]  = TSEKI_NUMPADSUBTRACT;
+	keycode_map[63]  = TSEKI_NUMPADMULTIPLY;
+	keycode_map[106] = TSEKI_NUMPADDIVIDE;
 
-  // Other keys
-  keycode_map[107] = TSEK_PRINTSCREEN;
-  keycode_map[78]  = TSEK_SCROLLLOCK;
-  keycode_map[127] = TSEK_PAUSE;
-}
+	// Editing/navigation
+	keycode_map[118] = TSEKI_INSERT;
+	keycode_map[119] = TSEKI_DELETE;
+	keycode_map[110] = TSEKI_HOME;
+	keycode_map[115] = TSEKI_END;
+	keycode_map[112] = TSEKI_PAGEUP;
+	keycode_map[117] = TSEKI_PAGEDOWN;
 
-void tsekL_fill_context(tsekIContext *context, bool setGlobal) {
+	// Editing/navigation
+	keycode_map[118] = TSEKI_INSERT;
+	keycode_map[119] = TSEKI_DELETE;
+	keycode_map[110] = TSEKI_HOME;
+	keycode_map[115] = TSEKI_END;
+	keycode_map[112] = TSEKI_PAGEUP;
+	keycode_map[117] = TSEKI_PAGEDOWN;
 
-  context->inner = malloc(sizeof(tsekLContext));
-
-  tsekLContext* LContext = Lget_context(context);
-
-  LContext->displayName = NULL;
-  LContext->display = XOpenDisplay(LContext->displayName);
-
-  LContext->WM_DELETE = XInternAtom(LContext->display, "WM_DELETE_WINDOW", false);
-
-  LContext->context = XUniqueContext();
-
-  printf("Display Name NULL\n");
-
-  if (setGlobal) {
-    globalContext = Lget_context(context);
-  }
-
-  XSynchronize(LContext->display, true);
-}
-
-void tsekL_destroy_context(tsekIContext* context) {
-  tsekLContext* c = Lget_context(context);
-  XCloseDisplay(c->display);
-
-  free(context->inner);
-}
-
-GLXFBConfig Lget_FBConfig(tsekIWindowInfo* info) {
-    int visual_attribs[] = {
-    GLX_X_RENDERABLE, True,
-    GLX_DRAWABLE_TYPE, GLX_WINDOW_BIT,
-    GLX_RENDER_TYPE, GLX_RGBA_BIT,
-    GLX_X_VISUAL_TYPE, GLX_TRUE_COLOR,
-
-    GLX_RED_SIZE, info->pixelFormat.r_bits,
-    GLX_GREEN_SIZE, info->pixelFormat.g_bits,
-    GLX_BLUE_SIZE, info->pixelFormat.b_bits,
-    GLX_ALPHA_SIZE, info->pixelFormat.a_bits,
-
-    GLX_DEPTH_SIZE, info->pixelFormat.depth_bits,
-    GLX_STENCIL_SIZE, info->pixelFormat.stencil_bits,
-
-    GLX_DOUBLEBUFFER, True,
-
-    GLX_SAMPLE_BUFFERS, 1,
-    GLX_SAMPLES, info->pixelFormat.samples,          // MSAA 4x
-
-    None
-  };
-
-  int fbcount;
-  GLXFBConfig* fbConfigList = glXChooseFBConfig(globalContext->display, DefaultScreen(globalContext->display), visual_attribs, &fbcount);
-  if (fbcount == 0) {
-      printf("Couldn't find any valid FBConfigs\n");
-  }
-  GLXFBConfig fbConfig = fbConfigList[0];
-
-  XFree(fbConfigList);
-
-  return fbConfig;
-}
-
-void tsekL_create_window(tsekIWindow* window, tsekIWindowInfo* info) {
-
-  XVisualInfo *visual = glXGetVisualFromFBConfig(globalContext->display, Lget_FBConfig(info));
-
-  printf("Creating Window\n");
-
-  Colormap map = XCreateColormap(globalContext->display, XDefaultRootWindow(globalContext->display), visual->visual, AllocNone);
-
-  XSetWindowAttributes attribs = {
-    .background_pixel = WhitePixel(globalContext->display, 0),
-    .colormap = map};
-
-  Window windowHandle = XCreateWindow(
-      globalContext->display,
-      XDefaultRootWindow(globalContext->display),
-      info->x, info->y,
-      info->width, info->height,
-      info->borderWidth,
-      visual->depth,
-      info->classId,
-      visual->visual, 
-      CWBackPixel | CWColormap,
-      &attribs);
-
-  printf("Window Opened\n");
-
-  window->inner = calloc(1, sizeof(tsekLWindow));
-
-  tsekLWindow* LWindow = Lget_window(window);
-  LWindow->window = windowHandle;
-  LWindow->isOpen = true;
-  LWindow->isCursorVisible = true;
-
-  printf("Window Created\n");
-
-  XMapRaised(globalContext->display, windowHandle);
-  XFlush(globalContext->display);
-
-  XSaveContext(globalContext->display, LWindow->window, globalContext->context, (XPointer)window);
-
-  printf("Window Mapped. Window ID: %lu\n", LWindow->window);
-
-  XSetWMProtocols(globalContext->display, Lget_window(window)->window, &globalContext->WM_DELETE, 1);
-  XSelectInput(globalContext->display, Lget_window(window)->window, 
-      StructureNotifyMask |
-      KeymapStateMask |
-      KeyPressMask |
-      KeyReleaseMask |
-      ButtonPressMask |
-      ButtonReleaseMask |
-      ResizeRequest);
-
-  glXMakeCurrent(globalContext->display, LWindow->window, globalContext->glContext);
-  
-  XFree(visual);
-}
-
-void tsekL_destroy_window(tsekIWindow* window) {
-  glXMakeCurrent(globalContext->display, None, NULL);
-  tsekL_set_cursor_visible(window, true);
-  free(window->inner);
-}
-
-void tsekL_create_dummy_window(tsekIWindow* window) {
-}
-
-Cursor Lget_invisible_cursor(tsekIWindow* window) {
-  Pixmap bm = XCreatePixmap(globalContext->display, Lget_window(window)->window, 1, 1, 1);
-
-    XColor black;
-    memset(&black, 0, sizeof(black));
-
-    Cursor cursor = XCreatePixmapCursor(
-        globalContext->display, bm, bm,
-        &black, &black,
-        0, 0
-    );
-
-    XFreePixmap(globalContext->display, bm);
-    return cursor;
+	// Other keys
+	keycode_map[107] = TSEKI_PRINTSCREEN;
+	keycode_map[78]  = TSEKI_SCROLLLOCK;
+	keycode_map[127] = TSEKI_PAUSE;
 }
 
 double Lget_time() {
-  struct timespec ts;
-  clock_gettime(CLOCK_MONOTONIC, &ts);
-  return (double)ts.tv_sec + (double)ts.tv_nsec * 1e-9;
+	struct timespec ts;
+	clock_gettime(CLOCK_MONOTONIC, &ts);
+	return (double)ts.tv_sec + (double)ts.tv_nsec * 1e-9;
 }
 
+Cursor Lget_invisible_cursor(tsekIWindow* window) {
+	tsekLContext* context = Lget_window(window)->context;
+	Pixmap bm = XCreatePixmap(context->display, Lget_window(window)->window, 1, 1, 1);
 
-void tsekL_init(tsekIContext *context, tsekIWindow *window, tsekIWindowInfo *info, wchar_t* defaultTitle, bool createGlobalContext, bool console) {
+	XColor black;
+	memset(&black, 0, sizeof(black));
 
-  Linit_keycode_map();
+	Cursor cursor = XCreatePixmapCursor(
+			context->display, bm, bm,
+			&black, &black,
+			0, 0
+			);
 
-  tsekPixelFormat defaultFormat = {
-    .r_bits = 8,
-    .g_bits = 8,
-    .b_bits = 8,
-    .a_bits = 8,
-    .depth_bits = 24,
-    .stencil_bits = 8,
-    .samples = 4,
-  };
+	XFreePixmap(context->display, bm);
+	return cursor;
+}
 
-  tsekIWindowInfo defaultInfo = {
-    defaultTitle,
-    500, 500,
-    50, 50,
-    0,
-    0, L"DEFAULTWNDCLASS",
-    0, 0,
-    defaultFormat,
-    {0, 0, 0, 0}
-  };
+GLXFBConfig Lget_FBConfig(tsekIWindowInfo* info, tsekIContext* context) {
+	int visual_attribs[] = {
+		GLX_X_RENDERABLE, True,
+		GLX_DRAWABLE_TYPE, GLX_WINDOW_BIT,
+		GLX_RENDER_TYPE, GLX_RGBA_BIT,
+		GLX_X_VISUAL_TYPE, GLX_TRUE_COLOR,
 
-  if (!info) {
-    info = &defaultInfo;
+		GLX_RED_SIZE, info->pixelFormat.r_bits,
+		GLX_GREEN_SIZE, info->pixelFormat.g_bits,
+		GLX_BLUE_SIZE, info->pixelFormat.b_bits,
+		GLX_ALPHA_SIZE, info->pixelFormat.a_bits,
+
+		GLX_DEPTH_SIZE, info->pixelFormat.depth_bits,
+		GLX_STENCIL_SIZE, info->pixelFormat.stencil_bits,
+
+		GLX_DOUBLEBUFFER, True,
+
+		GLX_SAMPLE_BUFFERS, 1,
+		GLX_SAMPLES, info->pixelFormat.samples,
+		None 
+	};
+
+	int fbcount;
+	GLXFBConfig* fbConfigList = glXChooseFBConfig(Lget_context(context)->display, DefaultScreen(Lget_context(context)->display), visual_attribs, &fbcount);
+	
+	if (fbcount == 0) {
+#ifdef TSEKI_DEBUG
+		printf("[LE@Lget_FBConfig] No framebuffers founds: Invalid Pixel Format\n");
+#endif
+	}
+	GLXFBConfig fbConfig = fbConfigList[0];
+	XFree(fbConfigList);
+	return fbConfig;
+}
+
+void tsekI_fill_context(tsekIContext* context) {
+	context->inner = malloc(sizeof(tsekLContext));
+	tsekLContext* Lcontext = Lget_context(context);
+
+	Lcontext->displayName = NULL;
+	Lcontext->display = XOpenDisplay(Lcontext->displayName);
+	Lcontext->WM_DELETE = XInternAtom(Lcontext->display, "WM_DELETE_WINDOW", false);
+	Lcontext->WM_STATE_CHANGE = XInternAtom(Lcontext->display, "_NET_WM_STATE", false);
+	Lcontext->context = XUniqueContext();
+
+#ifdef TSEKI_DEBUG
+	printf("[LD@tsekI_fill_context] Display Opened\n");
+#endif
+
+	XSynchronize(Lcontext->display, true);
+
+	Lcontext->fixedTimeOffset = Lget_time();
+	Lcontext->timeOffset = Lget_time();
+
+	Bool supported;
+	XkbSetDetectableAutoRepeat(Lcontext->display, True, &supported);
+
+}
+
+void tsekI_destroy_context(tsekIContext *context) {
+	tsekLContext* c = Lget_context(context);
+	XCloseDisplay(c->display);
+	free(context->inner);
+}
+
+void tsekL_create_window(tsekIContext* context, tsekIWindow* window, tsekIWindowInfo* info) {
+	tsekLContext* Lcontext = Lget_context(context);
+	XVisualInfo* visual = glXGetVisualFromFBConfig(Lcontext->display, Lget_FBConfig(info, context));
+
+	int context_attribs[] = {
+		GLX_CONTEXT_MAJOR_VERSION_ARB, 4,
+		GLX_CONTEXT_MINOR_VERSION_ARB, 5,
+		GLX_CONTEXT_PROFILE_MASK_ARB,
+		GLX_CONTEXT_CORE_PROFILE_BIT_ARB,
+		None
+	};
+
+	glXCreateContextAttribsARBProc glXCreateContextAttribsARB = (void*)glXGetProcAddress((const GLubyte*)"glXCreateContextAttribsARB");
+
+	Lcontext->glContext = glXCreateContextAttribsARB(Lcontext->display, Lget_FBConfig(info, context), 0, True, context_attribs);
+
+	if (!gladLoadGL()) {
+#ifdef TSEKI_DEBUG
+		fprintf(stderr, "[LE@tsekI_create_window] Failed to initialise GLAD\n");
+#endif
+	}
+
+#ifdef TSEKI_DEBUG
+	printf("[LD@tsekL_create_window] Creating Window\n");
+#endif
+
+	Colormap map = XCreateColormap(Lcontext->display, XDefaultRootWindow(Lcontext->display), visual->visual, AllocNone);
+
+	XSetWindowAttributes attribs = {
+		.background_pixel = WhitePixel(Lcontext->display, 0),
+		.colormap = map};
+
+	Window windowHandle = XCreateWindow(
+			Lcontext->display,
+			XDefaultRootWindow(Lcontext->display),
+			info->x, info->y,
+			info->width, info->height,
+			0,
+			visual->depth,
+			info->classId,
+			visual->visual,
+			CWBackPixel | CWColormap,
+			&attribs);
+
+#ifdef TSEKI_DEBUG
+	printf("[LD@tsekL_create_window] Window Openend\n");
+#endif
+
+	window->inner = calloc(1, sizeof(tsekLWindow));
+
+	tsekLWindow* Lwindow = Lget_window(window);
+	Lwindow->window = windowHandle;
+	Lwindow->isOpen = true;
+	Lwindow->isCursorVisible = true;
+	Lwindow->context = Lcontext;
+	Lwindow->Icontext = context;
+	Lwindow->stateDirty = false;
+
+	XMapRaised(Lcontext->display, windowHandle);
+	XFlush(Lcontext->display);
+
+	XSaveContext(Lcontext->display, Lwindow->window, Lcontext->context, (XPointer)window);
+
+#ifdef TSEKI_DEBUG
+	printf("[LD@tsekI_create_window] Window Mapped. Window ID: %lu\n", Lwindow.window);
+#endif
+
+	XSetWMProtocols(Lcontext->display, Lwindow->window, &Lcontext->WM_DELETE, 1);
+	XSelectInput(Lcontext->display, Lwindow->window,
+			StructureNotifyMask |
+			KeymapStateMask |
+			KeyPressMask |
+			KeyReleaseMask |
+			ButtonPressMask |
+			ButtonReleaseMask |
+			ResizeRequest);
+
+	glXMakeCurrent(Lcontext->display, Lwindow->window, Lcontext->glContext);
+	XFree(visual);
+
+	Lcontext->invisibleCursor = Lget_invisible_cursor(window);
+
+	u_char mask_bits[XIMaskLen(XI_RawMotion)] = {0};
+
+	XISetMask(mask_bits, XI_RawMotion);
+	XIEventMask mask = {
+		.deviceid = XIAllMasterDevices,
+		.mask_len = sizeof(mask_bits),
+		.mask = mask_bits,
+	};
+
+	XISelectEvents(
+			Lcontext->display,
+			Lwindow->window,
+			&mask,
+			1);
+
+	int event, error;
+	XQueryExtension(Lcontext->display, "XInputExtension", &Lcontext->WM_IN_OPCODE, &event, &error);
+
+	XFlush(Lcontext->display);
+}
+
+void tsekL_destroy_window(tsekIWindow* window) {
+	glXMakeCurrent(Lget_window(window)->context->display, None, NULL);
+	tsekL_set_cursor_visible(window, true);
+	free(window->inner);
+}
+
+void tsekL_init() {
+	Linit_keycode_map();
+}
+
+void tsekL_quickstart(tsekIContext* context, tsekIWindow* window, tsekIWindowInfo* info, wchar_t* default_title) {
+	tsekIPixelFormat defaultFormat = {
+		.r_bits = 8,
+		.g_bits = 8,
+		.b_bits = 8,
+		.a_bits = 8,
+		.depth_bits = 24,
+		.stencil_bits = 8,
+		.samples = 4,
+	};
+
+	tsekIWindowInfo defaultInfo = {
+		default_title,
+		500, 500, 
+		100, 100,
+		0,
+		defaultFormat,
+	};
+
+	if (!info) {
+		info = &defaultInfo;
+	}
+
+	tsekL_fill_context(context);
+	tsekL_create_window(context, window, info);
+}
+
+double tsekL_get_time(tsekIContext* context) {
+	return Lget_time() - Lget_context(context)->timeOffset;
+}
+
+double tsekL_get_fixed_time(tsekIContext* context) {
+	return Lget_time() - Lget_context(context)->fixedTimeOffset;
+}
+
+void tsekL_set_time(tsekIContext* context, double time) {
+	Lget_context(context)->timeOffset = Lget_time() - time;
+}
+
+void tsekL_allocate_time(tsekIContext* context, double framerate, double start, double end) {
+  double frametime = 1000 / framerate;
+  double elapsed_time = 1000 * (end - start);
+  //double ease = frametime / 16;
+  double ease = 0;
+  double sleep_time = frametime - elapsed_time - ease;
+
+  if (sleep_time > 0) {
+		usleep(sleep_time);
   }
-
-  int context_attribs[] = {
-    GLX_CONTEXT_MAJOR_VERSION_ARB, 4,
-    GLX_CONTEXT_MINOR_VERSION_ARB, 5,
-    GLX_CONTEXT_PROFILE_MASK_ARB,
-    GLX_CONTEXT_CORE_PROFILE_BIT_ARB,
-    None
-  };
-
-  typedef GLXContext (*glXCreateContextAttribsARBProc)(
-    Display*, GLXFBConfig, GLXContext, Bool, const int*);
-
-  glXCreateContextAttribsARBProc glXCreateContextAttribsARB =
-    (void*)glXGetProcAddress((const GLubyte*)"glXCreateContextAttribsARB");
-
-  printf("X: %d Y: %d Width: %d Height: %d\n", info->x, info->y, info->width, info->height);
-
-  tsekL_fill_context(context, createGlobalContext);
-
-  printf("Context Filled!\n");
-
-  tsekLContext* LContext = Lget_context(context);
-
-  LContext->glContext = glXCreateContextAttribsARB(LContext->display, Lget_FBConfig(info), 0, True, context_attribs);
-
-  printf("Display Opened\n");
-
-  tsekL_create_window(window, info);
-
-  printf("Window Created\n");
-
-  Bool supported;
-  XkbSetDetectableAutoRepeat(globalContext->display, True, &supported);
-
-  LContext->invisibleCursor = Lget_invisible_cursor(window);
-
-  LContext->fixedTimeOffset = Lget_time();
-  LContext->timeOffset = Lget_time();
-
-  if (!gladLoadGL()) {
-    fprintf(stderr, "Failed to initialize GLAD\n");
-    return;
-  }
-}
-
-double tsekL_get_time() {
-  return Lget_time() - globalContext->timeOffset;
-}
-
-double tsekL_get_fixed_time() {
-  return Lget_time() - globalContext->fixedTimeOffset;
-}
-
-void tsekL_set_time(double time) {
-  globalContext->timeOffset = Lget_time() - time;
-}
-
-void tsekL_allocate_time(double frametime, double start, double end) {
-  double sleepTime = fabs(frametime - (end - start));
-  usleep(sleepTime * 1000000);
 }
 
 bool tsekL_get_cursor_visible(tsekIWindow* window) {
-  return Lget_window(window)->isCursorVisible;
+	return Lget_window(window)->isCursorVisible;
 }
 
 void tsekL_set_cursor_visible(tsekIWindow* window, bool active) {
-  XUndefineCursor(globalContext->display, Lget_window(window)->window);
+	tsekLWindow* Lwindow = Lget_window(window);
+	XUndefineCursor(Lwindow->context->display, Lwindow->window);
 
-  if (!active) {
-    XDefineCursor(globalContext->display, Lget_window(window)->window, globalContext->invisibleCursor);
-  }
+	if (!active) {
+		XDefineCursor(Lwindow->context->display, Lwindow->window, Lwindow->context->invisibleCursor);
+	}
 
-  Lget_window(window)->isCursorVisible = active;
+	Lwindow->isCursorVisible = active;
 }
 
 void tsekL_swap_buffers(tsekIWindow* window) {
-  glXSwapBuffers(globalContext->display, Lget_window(window)->window);
+	glXSwapBuffers(Lget_window(window)->context->display, Lget_window(window)->window);
 }
 
 bool tsekL_is_window_closed(tsekIWindow* window) {
-  return Lget_window(window)->isOpen;
+	return Lget_window(window)->isOpen;
 }
 
-tsekKeyCode Lget_keycode(int linuxcode) {
-  if (linuxcode < 0 || linuxcode > MAX_LINUX_KEYCODE) return TSEK_NONE;
-  return keycode_map[linuxcode];
+tsekIKeyCode Lget_keycode(int linuxcode) {
+	if (linuxcode < 0 || linuxcode >= TSEKI_MAX_KEYMAP_SIZE) return TSEKI_NONE;
+	return keycode_map[linuxcode];
 }
 
 void Lproc_keydown(XKeyEvent event, tsekIWindow* window) {
-  tsekKeyCode code = Lget_keycode(event.keycode);
-  tsekLWindow* LWindow = Lget_window(window);
+	tsekIKeyCode code = Lget_keycode(event.keycode);
+	tsekLWindow* Lwindow = Lget_window(window);
 
-  if (LWindow->callbacks.keydown && (LWindow->keymap[code] == 0)) {
-    LWindow->callbacks.keydown(window, code);
-  }
-  LWindow->callbacks.keytype(window, code);
+	if (Lwindow->callbacks.key_down && (Lwindow->keymap[code] == 0)) {
+		Lwindow->callbacks.key_down(window, code);
+	}
 
-  LWindow->keymap[code] = true;
+	if (Lwindow->callbacks.key_type) {
+		Lwindow->callbacks.key_type(window, code);
+	}
+
+	Lwindow->keymap[code] = true;
 }
 
 void Lproc_keyup(XKeyEvent event, tsekIWindow* window) {
-  tsekKeyCode code = Lget_keycode(event.keycode);
+	tsekIKeyCode code = Lget_keycode(event.keycode);
 
-  if (Lget_window(window)->callbacks.keyup) {
-    Lget_window(window)->callbacks.keyup(window, code);
-  }
-  Lget_window(window)->keymap[code] = false;
+	if (Lget_window(window)->callbacks.key_up) {
+		Lget_window(window)->callbacks.key_up(window, code);
+	}
+	Lget_window(window)->keymap[code] = false;
 }
 
-tsekKeyCode Lget_buttoncode(uint32_t code) {
+tsekIKeyCode Lget_buttoncode(uint32_t code) {
   switch (code) {
-    case Button1: return TSEK_MBL;
-    case Button2: return TSEK_MBM;
-    case Button3: return TSEK_MBR;
-    case Button4: return TSEK_MB4;
-    case Button5: return TSEK_MB5;
-    default: return TSEK_NONE;
+    case Button1: return TSEKI_MBL;
+    case Button2: return TSEKI_MBM;
+    case Button3: return TSEKI_MBR;
+    case Button4: return TSEKI_MB4;
+    case Button5: return TSEKI_MB5;
+    default: return TSEKI_NONE;
   }
 }
 
 void Lproc_mousedown(XButtonEvent event, tsekIWindow* window) {
-  tsekKeyCode code = Lget_buttoncode(event.button);
-  tsekLWindow* LWindow = Lget_window(window);
+	tsekIKeyCode code = Lget_buttoncode(event.button);
+	tsekLWindow* Lwindow = Lget_window(window);
 
-  if (LWindow->callbacks.mbdown) {
-    LWindow->callbacks.mbdown(window, code);
-  }
+	if (Lwindow->callbacks.mb_down) {
+		Lwindow->callbacks.mb_down(window, code);
+	}
 
-  LWindow->keymap[code] = true;
+	Lwindow->keymap[code] = true;
 }
 
 void Lproc_mouseup(XButtonEvent event, tsekIWindow* window) {
-  tsekKeyCode code = Lget_buttoncode(event.button);
-  tsekLWindow* LWindow = Lget_window(window);
+	tsekIKeyCode code = Lget_buttoncode(event.button);
+	tsekLWindow* Lwindow = Lget_window(window);
 
-  if (LWindow->callbacks.mbup) {
-    LWindow->callbacks.mbup(window, code);
-  }
+	if (Lwindow->callbacks.mb_up) {
+		Lwindow->callbacks.mb_up(window, code);
+	}
 
-  LWindow->keymap[code] = false;
+	Lwindow->keymap[code] = false;
 }
 
 void Lproc_resize(XConfigureEvent event, tsekIWindow* window) {
-  tsekLWindow* w = Lget_window(window);
+	tsekLWindow* Lwindow = Lget_window(window);
 
-  if (w->callbacks.size) {
-    w->callbacks.size(window, event.width, event.height);
-  }
+	if (Lwindow->callbacks.size) {
+		Lwindow->callbacks.size(window, event.width, event.height);
+	}
 
-  if (w->callbacks.tsegsize) {
-    w->callbacks.tsegsize(window, event.width, event.height);
-  }
+	if (Lwindow->callbacks.tsekG_size) {
+		Lwindow->callbacks.tsekG_size(window, event.width, event.height);
+	}
+}
+
+tsekIWindowState Lget_window_state(tsekIWindow* window) {
+	tsekLWindow* Lwindow = Lget_window(window);
+
+	Atom actual_type;
+	int actual_format;
+	ulong nitems;
+	ulong bytes_after;
+	u_char* data = NULL;
+
+	XGetWindowProperty(Lwindow->context->display, Lwindow->window,
+			Lwindow->context->WM_STATE_CHANGE, 0, ~0L, False,
+			XA_ATOM,
+			&actual_type, &actual_format, &nitems, &bytes_after,
+			&data);
+
+	Atom* states = (Atom*)data;
+
+	bool maximised_x, maximised_y, fullscreen;
+
+	for (int i = 0; i < nitems; i++) {
+		char* name = XGetAtomName(Lwindow->context->display, states[i]);
+
+		if (strcmp(name, "_NET_WM_STATE_FULLSCREEN") == 0) {
+			fullscreen = true;
+		}
+
+		if (strcmp(name, "_NET_WM_STATE_MAXIMISED_VERT") == 0) {
+			maximised_x = true;
+		}
+
+		if (strcmp(name, "_NET_WM_STATE_MAXIMISED_HORZ") == 0) {
+			maximised_y = true;
+		}
+
+		XFree(name);
+	}
+	XFree(data);
+
+	if (fullscreen) {
+		return TSEKI_BORDERLESS;
+	}
+
+	if (maximised_x && maximised_y) {
+		return TSEKI_WINDOWED_FULLSCREEN;
+	}
+
+	return TSEKI_WINDOWED;
+}
+
+void Lproc_generic_event(tsekIWindow* window, XEvent event) {
+	tsekLWindow* Lwindow = Lget_window(window);
+	if (event.xcookie.extension == Lwindow->context->WM_IN_OPCODE && 
+			XGetEventData(Lwindow->context->display, &event.xcookie)) {
+
+			if (event.xcookie.evtype == XI_RawMotion) {
+				XIRawEvent* raw = event.xcookie.data;
+
+				int value_index = 0;
+				for (int i = 0; i < raw->valuators.mask_len * 8; i++) {
+					if (XIMaskIsSet(raw->valuators.mask, i)) {
+
+						float value = raw->raw_values[value_index++];
+
+						if (i == 0) {
+							Lwindow->mouse_deltas[0] += value;
+						}
+						
+						if (i == 1) {
+							Lwindow->mouse_deltas[1] += value;
+						}
+					}
+				}
+			}
+	}
 }
 
 bool tsekL_update_window(tsekIWindow* window) {
+	tsekLWindow* Lwindow = Lget_window(window);
+	
+	Lwindow->mouse_deltas[0] = 0; Lwindow->mouse_deltas[1] = 0;
 
-  while (XPending(globalContext->display) > 0) {
+	while (XPending(Lwindow->context->display) > 0) {
+		XEvent event = {0};
+		XNextEvent(Lwindow->context->display, &event);
 
-    XEvent event = {0};
-    XNextEvent(globalContext->display, &event);
+		tsekIWindow* eWindow = NULL;
+		XFindContext(Lwindow->context->display, event.xany.window, Lwindow->context->context, (XPointer*)&eWindow);
 
-    tsekIWindow* eWindow = NULL;
-    XFindContext(globalContext->display, event.xany.window, globalContext->context, (XPointer*)&eWindow);
-    switch (event.type) {
-      case ClientMessage: {
-        if ((Atom)event.xclient.data.l[0] == globalContext->WM_DELETE) {
-          printf("Window Delete requested by WM\n");
-          Lget_window(eWindow)->isOpen = false;
-        }
-        break;
-      }
-      case KeyPress: {
-        Lproc_keydown(event.xkey, eWindow);
-        break;
-      }
-      case KeyRelease: {
-        Lproc_keyup(event.xkey, eWindow);
-        break;
-      }
-      case ButtonPress: {
-        Lproc_mousedown(event.xbutton, eWindow);
-        break;
-      }
-      case ButtonRelease: {
-        Lproc_mouseup(event.xbutton, eWindow);
-        break;
-      }
-      case ConfigureNotify: {
-        printf("Resize\n");
-        Lproc_resize(event.xconfigure, eWindow);
-        break;
-      }
-    }
-  }
-  return true;
+		switch (event.type) {
+
+			case ClientMessage: {
+					if ((Atom)event.xclient.data.l[0] == Lwindow->context->WM_DELETE) {
+						Lget_window(eWindow)->isOpen = false;
+					}
+					break;
+													}
+
+			case KeyPress: {
+					Lproc_keydown(event.xkey, eWindow);
+					break;
+										 }
+
+			case KeyRelease: {
+					Lproc_keyup(event.xkey, eWindow);
+					break;
+											 }
+
+			case ButtonPress: {
+					Lproc_mousedown(event.xbutton, eWindow);
+					break;
+												}
+
+			case ButtonRelease: {
+					Lproc_mouseup(event.xbutton, eWindow);
+					break;
+													}
+
+			case ConfigureNotify: {
+					Lproc_resize(event.xconfigure, eWindow);
+					break;
+														}
+
+			case PropertyNotify: {
+					if (event.xproperty.atom == Lwindow->context->WM_STATE_CHANGE) {
+						Lwindow->stateDirty = true;
+					}
+					break;
+													 }
+		}
+	}
+
+	if (Lwindow->stateDirty) {
+
+		tsekIWindowState state = Lget_window_state(window);
+
+		if (state != Lwindow->windowState) {
+
+			Lwindow->windowState = state;
+
+			if (Lwindow->callbacks.window_state_change) {
+				Lwindow->callbacks.window_state_change(window, state);
+			}
+
+			Lwindow->stateDirty = false;
+		}
+	}
+
+	return true;
 }
 
-void tsekL_get_window_param(tsekIWindow* window, tsekIWindowParam param, void* out) {
-    XWindowAttributes attribs;
-    Status s = XGetWindowAttributes(globalContext->display, Lget_window(window)->window, &attribs);
+void tsekL_get_param(tsekIWindow* window, tsekIWindowParam param, void* out) {
+	XWindowAttributes attribs;
+	tsekLWindow* Lwindow = Lget_window(window);
+	Status s = XGetWindowAttributes(Lwindow->context->display, Lget_window(window)->window, &attribs);
 
-    if (!s) {
-      printf("Failed XGet allocation");
-    }
+	if (!s) {
+#ifdef TSEKI_DEBUG
+		printf("[LE@tsekL_get_param] Failed XGet allocation");
+#endif
+	}
 
-    switch (param) {
-      case CLIENT_RECT:
-      case CLIENT_DIM:
-      case CLIENT_POS:
-      case WINDOW_RECT:
-      case WINDOW_POS:
-      case WINDOW_DIM: {
-        int screen_x, screen_y;
-        Window temp;
-        XTranslateCoordinates(globalContext->display, Lget_window(window)->window,
-            DefaultRootWindow(globalContext->display), 
-            0, 0,
-            &screen_x, &screen_y,
-            &temp);
+	switch (param) {
+		case TSEKI_CLIENT_RECT:
+		case TSEKI_WINDOW_RECT: {
+				int screen_x, screen_y;
+				Window temp;
+				XTranslateCoordinates(Lwindow->context->display, Lwindow->window,
+						DefaultRootWindow(Lwindow->context->display),
+						0, 0,
+						&screen_x, &screen_y,
+						&temp);
 
-        POS* pout = (POS*)out;
-        pout->x = screen_x;
-        pout->y = screen_y;
-        pout->width = attribs.width;
-        pout->height = attribs.height;
-        break;
-      }
-      case CURSORPOS_CLIENT:
-      case CURSORPOS_WINDOW:
-      case CURSORPOS_DESKTOP: {
-        Window temp;
-        int x, y;
-        int rx, ry;
-        uint32_t mask;
+				tsekIRect* rect = out;
+				rect->x = screen_x;
+				rect->y = screen_y;
+				rect->width = attribs.width;
+				rect->height = attribs.height;
+				break;
+														}
 
-        Window w = Lget_window(window)->window;
+		case TSEKI_CURSORPOS_CLIENT:
+		case TSEKI_CURSORPOS_WINDOW:
+		case TSEKI_CURSORPOS_DESKTOP: {
+				Window temp;
+				int x, y;
+				int rx, ry;
+				uint32_t mask;
 
-        bool success = XQueryPointer(globalContext->display, w, &temp, &temp, 
-            &rx, &ry, &x, &y, &mask);
+				XQueryPointer(Lwindow->context->display, Lwindow->window, &temp, &temp, &rx, &ry, &x, &y, &mask);
 
-        int* pos = (int*)out;
-        pos[0] = param == CURSORPOS_DESKTOP ? rx : x;
-        pos[1] = param == CURSORPOS_DESKTOP ? ry : y;
-        break;
-      }
-      case CALLBACKS: {
-        tsekLWindow* w = Lget_window(window);
-        tsekCallbacks** callbacks = (tsekCallbacks**)out;
-        *callbacks = &w->callbacks;
-        break;
-      }
-      case KEYMAP: {
-        tsekLWindow* w = Lget_window(window);
-        int** p = (int**)out;
-        *p = w->keymap;
-        break;
-      }
-      default: {
-        fprintf(stderr, "Invalid PARAMETER");
-        break;
-      }
-    }
-  }
+				int* pos = out;
+				pos[0] = param == TSEKI_CURSORPOS_DESKTOP ? rx : x;
+				pos[1] = param == TSEKI_CURSORPOS_DESKTOP ? ry : y;
+				break;
+																	}
 
-  void tsekL_set_window_param(tsekIWindow* window, tsekIWindowParam param, void* in) {
-    switch (param) {
-      case WINDOW_RECT:
-      case WINDOW_DIM:
-      case WINDOW_POS:
-      case CLIENT_RECT:
-      case CLIENT_DIM:
-      case CLIENT_POS: {
-        fprintf(stderr, "Window Resizing / Moving is delegated to Window Manager. To quote make, Stop.");
-        break;
-      }
-      case CURSORPOS_DESKTOP: {
-        int* pos = (int*)in;
-        XWarpPointer(globalContext->display, 0,
-            XDefaultRootWindow(globalContext->display),
-            0, 0, 0, 0,
-            pos[0], pos[1]);
-        break;
-      }
-      case CURSORPOS_CLIENT:
-      case CURSORPOS_WINDOW: {
-        int* pos = (int*)in;
-        XWarpPointer(globalContext->display, 0,
-            Lget_window(window)->window,
-            0, 0, 0, 0,
-            pos[0], pos[1]);
-        break;
-      }
-      case KEYMAP: {
-        fprintf(stderr, "Linux Keymap is Read-Only.");
-        break;
-      }
-      case CALLBACKS: {
-        tsekCallbacks* callbacks = (tsekCallbacks*)in;
-        Lget_window(window)->callbacks = *callbacks;
-      }
-    }
-  }
+		case TSEKI_KEYMAP: {
+				memcpy(out, Lwindow->keymap, TSEKI_MAX_KEYMAP_SIZE * sizeof(*Lwindow->keymap));
+				break;
+											 }
 
-void tsekL_request_window_state(tsekIWindow* window, tsekWindowState state) {
+		case TSEKI_KEYMAP_REFERENCE: {
+				int** p = out;
+				*p = Lwindow->keymap;
+				break;
+																 }
+
+		case TSEKI_CALLBACKS: {
+				tsekICallbacks* cout = out;
+				*cout = Lwindow->callbacks;
+				break;
+													}
+
+		case TSEKI_CONTEXT_REFERENCE: {
+				tsekIContext** cout = out;
+				*cout = Lwindow->Icontext;
+				break;
+																	}
+
+		case TSEKI_WINDOW_STATE: {
+				tsekIWindowState* p = out;
+				*p = Lwindow->windowState;
+				break;
+														 }
+
+		case TSEKI_MOUSE_DELTA: {
+				float* p = out;
+				memcpy(p, Lwindow->mouse_deltas, 2 * sizeof(float));
+				break;
+														}
+
+	}
+}
+
+void Lchange_window_state(tsekIWindow* window, Atom state, int add) {
+	tsekLWindow* Lwindow = Lget_window(window);
+
+	XEvent event = {0};
+
+	event.xclient.type = ClientMessage;
+	event.xclient.type = Lwindow->context->WM_STATE_CHANGE;
+	event.xclient.display = Lwindow->context->display;
+	event.xclient.window = Lwindow->window;
+	event.xclient.format = 32;
+
+	event.xclient.data.l[0] = add;
+	event.xclient.data.l[1] = state;
+	event.xclient.data.l[2] = 0;
+
+	XSendEvent(Lwindow->context->display, DefaultRootWindow(Lwindow->context->display), False, SubstructureNotifyMask | SubstructureRedirectMask, &event);
+}
+
+void Lset_window_state(tsekIWindow* window, tsekIWindowState state) {
+	tsekLWindow* Lwindow = Lget_window(window);
+
+	tsekIWindowState before = Lget_window_state(window);
+
+	if (before == TSEKI_WINDOWED) {
+		tsekI_get_param(window, TSEKI_WINDOW_RECT, &Lwindow->saved_position);
+	}
+
+	Atom fullscreen = XInternAtom(Lwindow->context->display, "_NET_WM_STATE_FULLSCREEN", False);
+	Atom maximised_x = XInternAtom(Lwindow->context->display, "_NET_WM_STATE_MAXIMISED_HORZ", False);
+	Atom maximised_y = XInternAtom(Lwindow->context->display, "_NET_WM_STATE_MAXIMISED_VERT", False);
+
+	Lchange_window_state(window, fullscreen, 0);
+	Lchange_window_state(window, maximised_x, 0);
+	Lchange_window_state(window, maximised_y, 0);
+
+	if (state == TSEKI_BORDERLESS) {
+		Lchange_window_state(window, fullscreen, 1);
+	}
+
+	if (state == TSEKI_WINDOWED_FULLSCREEN) {
+		Lchange_window_state(window, maximised_x, 1);
+		Lchange_window_state(window, maximised_y, 1);
+	}
+
+	if (state == TSEKI_WINDOWED) {
+		tsekI_set_param(window, TSEKI_WINDOW_RECT, &Lwindow->saved_position);
+	}
+}
+
+void tsekL_set_param(tsekIWindow* window, tsekIWindowParam param, void* in) {
+	tsekLWindow* Lwindow = Lget_window(window);
+
+	switch(param) {
+		case TSEKI_WINDOW_RECT:
+		case TSEKI_CLIENT_RECT: {
+				tsekIRect* rect = in;
+				XMoveResizeWindow(Lwindow->context->display, Lwindow->window, rect->x, rect->y, rect->width, rect->height);
+#ifdef TSEKI_DEBUG
+				printf("[LI@tsekL_set_param] Window Move/Resize is delegated to the Window Manager. Please dont rely on this in your program, as it is a request, not an override!\n");
+#endif 
+				break;
+														}
+
+		case TSEKI_CURSORPOS_DESKTOP: {
+				int* pos = in;
+				XWarpPointer(Lwindow->context->display, 0,
+						XDefaultRootWindow(Lwindow->context->display),
+						0, 0, 0, 0,
+						pos[0], pos[1]);
+				break;
+														}
+
+		case TSEKI_CURSORPOS_WINDOW:
+		case TSEKI_CURSORPOS_CLIENT: {
+				int* pos = in;
+				XWarpPointer(Lwindow->context->display, 0,
+						Lwindow->window,
+						0, 0, 0, 0,
+						pos[0], pos[1]);
+				break;
+													 }
+
+		case TSEKI_KEYMAP_REFERENCE:
+		case TSEKI_KEYMAP: {
+#ifdef TSEKI_DEBUG
+				printf("[LI@tsekL_set_param] Keymap is read-only.\n");
+#endif
+				break;
+											 }
+
+		case TSEKI_CALLBACKS: {
+				tsekICallbacks* callbacks = in;
+				Lwindow->callbacks = *callbacks;
+				break;
+													}
+
+		case TSEKI_CONTEXT_REFERENCE: {
+				tsekIContext** p = in;
+				Lwindow->Icontext = *p;
+				Lwindow->context = Lget_context(*p);
+				break;
+																	}
+
+		case TSEKI_WINDOW_STATE: {
+				tsekIWindowState* state;
+				Lset_window_state(window, *state);
+				break;
+														 }
+
+		case TSEKI_MOUSE_DELTA: {
+#ifdef TSEKI_DEBUG
+				printf("[LI@tsekL_set_param] Mouse Deltas are read-only.\n");
+#endif
+				break;
+														}
+	}
 }
 
 tsekLAddressInfo* Lget_address_info(tsekIAddressInfo* info) {
-  return (tsekLAddressInfo*)info->inner;
+	return info->inner;
 }
 
-void tsekL_get_address_info(char* url, int port, tsekIAddressInfo* info) {
-  info->inner = malloc(sizeof(tsekLAddressInfo));
+void tsekL_get_address_info(char* url, uint32_t port, tsekIAddressInfo* info) {
+	info->inner = malloc(sizeof(tsekLAddressInfo));
   tsekLAddressInfo* addrinfo = Lget_address_info(info);
 
   char port_string[6];
@@ -674,13 +906,15 @@ void tsekL_get_address_info(char* url, int port, tsekIAddressInfo* info) {
   }
 }
 
-void tsekL_display_addrinfo(tsekIAddressInfo* info) {
+void tsekL_unpack_address_info(tsekIAddressInfo* info, char** ip, uint32_t* port) {
   tsekLAddressInfo* addrinfo = Lget_address_info(info);
   struct sockaddr_in* addrin = (struct sockaddr_in*)addrinfo->info->ai_addr;
-  char ip[INET_ADDRSTRLEN];
-  inet_ntop(addrinfo->info->ai_family, &(addrin->sin_addr), ip, INET_ADDRSTRLEN);
+  inet_ntop(addrinfo->info->ai_family, &(addrin->sin_addr), *ip, TSEKI_IP_BUFFER_SIZE);
+	*port = ntohs(addrin->sin_port);
 
+#ifdef TSEKI_DEBUG
   printf("\nSOCKET ADDRINFO\n-=-=-=-=-=-=-\nIP: %s\nPort: %d\n\n", ip, ntohs(addrin->sin_port));
+#endif
 }
 
 void tsekL_destroy_address_info(tsekIAddressInfo* info) {
@@ -688,8 +922,11 @@ void tsekL_destroy_address_info(tsekIAddressInfo* info) {
   free(info->inner);
 }
 
-void tsekL_network_init() {}
-void tsekL_network_cleanup() {}
+void tsekL_init_network() {
+}
+
+void tsekL_cleanup_netwok () {
+}
 
 void tsekL_socket_create(tsekISocket* sock) {
   sock->handle = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
@@ -710,7 +947,7 @@ void tsekL_socket_bind(tsekISocket* socket, tsekIAddressInfo* address) {
   }
 }
 
-void tsekL_socket_listen(tsekISocket* socket, int backlog) {
+void tsekL_socket_listen(tsekISocket* socket, uint32_t backlog) {
   int success = listen(socket->handle, backlog);
   
   if (success != 0) {
@@ -722,9 +959,10 @@ void tsekL_socket_accept(tsekISocket* server, tsekISocket* client, tsekIAddressI
   address->inner = malloc(sizeof(tsekLAddressInfo));
   tsekLAddressInfo* info = Lget_address_info(address);
   info->info = malloc(sizeof(struct addrinfo));
-  int addrlen = sizeof(struct sockaddr_storage);
+  uint32_t addrlen = sizeof(struct sockaddr_storage);
   client->handle = accept(server->handle, info->info->ai_addr, &addrlen);
 }
+
 // client 
 
 void tsekL_socket_connect(tsekISocket* socket, tsekIAddressInfo* address) {
@@ -742,24 +980,24 @@ void tsekL_socket_connect(tsekISocket* socket, tsekIAddressInfo* address) {
 
 // messaging
 
-int tsekL_socket_send(tsekISocket* socket, char* message, int length, bool OOB, bool dontroute) {
+int tsekL_socket_send(tsekISocket* socket, char* message, uint32_t length, uint32_t inflags) {
   int flags = 0;
-  if (OOB) flags |= MSG_OOB;
-  if (dontroute) flags |= MSG_DONTROUTE;
+  if (inflags & TSEKI_SOCKET_OOB) flags |= MSG_OOB;
+  if (inflags & TSEKI_SOCKET_DONTROUTE) flags |= MSG_DONTROUTE;
   return send(socket->handle, message, length, flags);
 }
 
-int tsekL_socket_recv(tsekISocket* socket, char* message, int length, bool OOB, bool peek, bool waitall) {
+int tsekL_socket_recv(tsekISocket* socket, char* message, uint32_t length, uint32_t inflags) {
   int flags = 0;
-  if (OOB) flags |= MSG_OOB;
-  if (peek) flags |= MSG_PEEK;
-  if (waitall) flags |= MSG_WAITALL;
+  if (inflags & TSEKI_SOCKET_OOB) flags |= MSG_OOB;
+  if (inflags & TSEKI_SOCKET_PEEK) flags |= MSG_PEEK;
+  if (inflags & TSEKI_SOCKET_WAITALL) flags |= MSG_WAITALL;
   return recv(socket->handle, message, length, flags);
 }
 
 int tsekL_socket_geterror(tsekISocket* socket) {return 0;}
 
-void tsekL_socket_set_nonblocking(tsekISocket* socket, int mode) {
+void tsekL_socket_set_nonblocking(tsekISocket* socket, uint32_t mode) {
   int flags = fcntl(socket->handle, F_GETFL, 0);
   if (flags == -1) return;
 
@@ -772,6 +1010,10 @@ void tsekL_socket_set_nonblocking(tsekISocket* socket, int mode) {
   fcntl(socket->handle, F_SETFL, flags);
 }
 
+tsekLTLSSocket* Lget_TLSSocket(tsekITLSSocket* socket) {
+	return socket->inner;
+}
+
 void tsekL_TLS_init(tsekITLSContext* context) {
   SSL_library_init();
   SSL_load_error_strings();
@@ -780,19 +1022,24 @@ void tsekL_TLS_init(tsekITLSContext* context) {
   SSL_CTX_set_default_verify_paths(context->context);
 }
 
-int tsekL_TLS_connect(tsekITLSSocket* tls_socket, char* host, tsekISocket* socket, tsekITLSContext* context) {
+int tsekL_TLS_connect(tsekITLSSocket* Itls_socket, char* host, tsekISocket* socket, tsekITLSContext* context) {
+	Itls_socket->inner = malloc(sizeof(tsekLTLSSocket));
+	tsekLTLSSocket* tls_socket = Lget_TLSSocket(Itls_socket);
   tls_socket->socket = SSL_new(context->context);
   SSL_set_fd(tls_socket->socket, socket->handle);
 
   if (SSL_connect(tls_socket->socket) != 1) {
+#ifdef TSEKI_DEBUG
+		printf("[LE@tsekL_TLS_connect] Network Error Below:\n");
     ERR_print_errors_fp(stderr);
-    return;
+#endif
+    return -1;
   }
-  printf("TLS connected\n");
   return 0;
 }
 
-int tsekL_TLS_send(tsekITLSSocket* socket, char* message, int length) { 
+int tsekL_TLS_send(tsekITLSSocket* Isocket, char* message, uint32_t length) { 
+	tsekLTLSSocket* socket = Lget_TLSSocket(Isocket);
   int w = SSL_write(socket->socket, message, length);
   if (w <= 0) {
     ERR_print_errors_fp(stderr);
@@ -800,7 +1047,9 @@ int tsekL_TLS_send(tsekITLSSocket* socket, char* message, int length) {
   return w;
 }
 
-int tsekL_TLS_recv(tsekITLSSocket* socket, char* buffer, int length) {
+int tsekL_TLS_recv(tsekITLSSocket* Isocket, char* buffer, uint32_t length) {
+	tsekLTLSSocket* socket = Lget_TLSSocket(Isocket);
+
   int bytes;
   bytes = SSL_read(socket->socket, buffer, length-1);
 
@@ -814,13 +1063,12 @@ int tsekL_TLS_recv(tsekITLSSocket* socket, char* buffer, int length) {
   return bytes;
 }
 
-void tsekL_TLS_destroy_socket(tsekITLSSocket* tls_socket, tsekISocket* socket) {
+void tsekL_TLS_destroy_socket(tsekITLSSocket* Itls_socket, tsekISocket* socket) {
+	tsekLTLSSocket* tls_socket = Lget_TLSSocket(Itls_socket);
   SSL_free(tls_socket->socket);
 }
 
 void tsekL_TLS_destroy_context(tsekITLSContext* context) {
   SSL_CTX_free(context->context);
 }
-
 #endif
-

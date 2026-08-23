@@ -1,23 +1,13 @@
+
 #ifdef PLATFORM_LINUX
 
-#warning "Including Linux-Specific Headers"
+#pragma once
 
 #include <X11/Xutil.h>
 #include "../tsekI.h"
 #include <GL/glx.h>
 #include <sys/socket.h>
 #include <netdb.h>
-#include "../../libs/glad.h"
-
-#define MAX_LINUX_KEYCODE 255
-
-typedef struct {
-  Window window;
-  tsekCallbacks callbacks;
-  int keymap[MAX_LINUX_KEYCODE + 1];
-  bool isOpen;
-  bool isCursorVisible;
-} tsekLWindow;
 
 typedef struct {
   char* displayName;
@@ -26,59 +16,74 @@ typedef struct {
   XContext context;
 
   Atom WM_DELETE;
+	Atom WM_STATE_CHANGE;
+
   Cursor invisibleCursor;
 
   double fixedTimeOffset;
   double timeOffset;
 
   GLXContext glContext;
+
+	int WM_IN_OPCODE;
 } tsekLContext;
 
-void tsekL_init(tsekIContext*, tsekIWindow*, tsekIWindowInfo*, wchar_t* defaultTitle, bool createGlobalContext, bool console);
+typedef struct {
+  struct addrinfo* info;
+} tsekLAddressInfo;
 
-void tsekL_fill_context(tsekIContext* context, bool setGlobal);
+
+typedef struct {
+	tsekLContext* context;
+	tsekIContext* Icontext;
+  Window window;
+  tsekICallbacks callbacks;
+  int keymap[TSEKI_MAX_KEYMAP_SIZE];
+  bool isOpen;
+  bool isCursorVisible;
+	tsekIWindowState windowState;
+	bool stateDirty;
+	tsekIRect saved_position;
+	float mouse_deltas[2];
+} tsekLWindow;
+
+
+
+void tsekL_init();
+void tsekL_quickstart(tsekIContext*, tsekIWindow*, tsekIWindowInfo*, wchar_t* default_title);
+
+void tsekL_fill_context(tsekIContext* context);
 void tsekL_destroy_context(tsekIContext* context);
 
-void tsekL_create_dummy_window(tsekIWindow* window);
-void tsekL_create_window(tsekIWindow* window, tsekIWindowInfo* info);
+void tsekL_create_window(tsekIContext*, tsekIWindow* window, tsekIWindowInfo* info);
 void tsekL_destroy_window(tsekIWindow* window);
 
 bool tsekL_is_window_closed(tsekIWindow*);
 bool tsekL_update_window(tsekIWindow* window);
 
-double tsekL_get_time();
-double tsekL_get_fixed_time();
+double tsekL_get_time(tsekIContext*);
+double tsekL_get_fixed_time(tsekIContext*);
 
-void tsekL_set_time(double time);
-void tsekL_allocate_time(double framerate, double start, double end);
+void tsekL_set_time(tsekIContext*, double time);
+void tsekL_allocate_time(tsekIContext*, double framerate, double start, double end);
 
 bool tsekL_get_cursor_visible(tsekIWindow*);
 void tsekL_set_cursor_visible(tsekIWindow*, bool);
 
 void tsekL_swap_buffers(tsekIWindow*);
 
-void tsekL_request_window_state(tsekIWindow* window, tsekWindowState state);
-
 // messager
 
-void tsekL_get_window_param(tsekIWindow* window, tsekIWindowParam param, void* out);
-void tsekL_set_window_param(tsekIWindow* window, tsekIWindowParam param, void* in);
+void tsekL_get_param(tsekIWindow* window, tsekIWindowParam param, void* out);
+void tsekL_set_param(tsekIWindow* window, tsekIWindowParam param, void* in);
 
 // networking
 
-typedef struct {
-  void* inner;
-} tsekLConnection;
+void tsekL_init_network();
+void tsekL_cleanup_network();
 
-typedef struct {
-  struct addrinfo* info;
-} tsekLAddressInfo;
-
-void tsekL_network_init();
-void tsekL_network_cleanup();
-
-void tsekL_get_address_info(char* url, int port, tsekIAddressInfo* info);
-void tsekL_display_addrinfo(tsekIAddressInfo* info);
+void tsekL_get_address_info(char* url, uint32_t port, tsekIAddressInfo* info);
+void tsekL_unpack_address_info(tsekIAddressInfo* info, char** ip, uint32_t* port);
 void tsekL_destroy_address_info(tsekIAddressInfo* info);
 void tsekL_socket_create(tsekISocket* socket);
 void tsekL_socket_close(tsekISocket* socket);
@@ -86,27 +91,31 @@ void tsekL_socket_close(tsekISocket* socket);
 // server
 
 void tsekL_socket_bind(tsekISocket* socket, tsekIAddressInfo* address);
-void tsekL_socket_listen(tsekISocket* socket, int backlog);
+void tsekL_socket_listen(tsekISocket* socket, uint32_t backlog);
 void tsekL_socket_accept(tsekISocket* server, tsekISocket* client, tsekIAddressInfo* address);
 
-// client 
+// client
 
 void tsekL_socket_connect(tsekISocket* socket, tsekIAddressInfo* address);
 
 // messaging
 
-int tsekL_socket_send(tsekISocket* socket, char* message, int length, bool OOB, bool dontroute);
-int tsekL_socket_recv(tsekISocket* socket, char* message, int length, bool OOB, bool peek, bool waitall);
+int32_t tsekL_socket_send(tsekISocket* socket, char* message, uint32_t length, uint32_t flags);
+int32_t tsekL_socket_recv(tsekISocket* socket, char* message, uint32_t length, uint32_t flags);
 
-int tsekL_socket_geterror(tsekISocket* socket);
-void tsekL_socket_set_nonblocking(tsekISocket* socket, int mode);
+int32_t tsekL_socket_geterror(tsekISocket* socket);
+void tsekL_socket_set_nonblocking(tsekISocket* socket, uint32_t mode);
 
-// TLS 
+// TLS
+
+typedef struct {
+	void* socket;
+} tsekLTLSSocket;
 
 void tsekL_TLS_init(tsekITLSContext* context);
-int tsekL_TLS_connect(tsekITLSSocket* tls_socket, char* host, tsekISocket* socket, tsekITLSContext* context);
-int tsekL_TLS_send(tsekITLSSocket* socket, char* message, int length);
-int tsekL_TLS_recv(tsekITLSSocket* socket, char* buffer, int length);
+int32_t tsekL_TLS_connect(tsekITLSSocket* tls_socket, char* host, tsekISocket* socket, tsekITLSContext* context);
+int32_t tsekL_TLS_send(tsekITLSSocket* socket, char* message, uint32_t length);
+int32_t tsekL_TLS_recv(tsekITLSSocket* socket, char* buffer, uint32_t length);
 void tsekL_TLS_destroy_socket(tsekITLSSocket* tls_socket, tsekISocket* socket);
 void tsekL_TLS_destroy_context(tsekITLSContext* context);
 

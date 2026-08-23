@@ -542,7 +542,6 @@ void tsekW_quickstart(tsekIContext* context, tsekIWindow* window, tsekIWindowInf
     .title = defaultTitle,
     .width = 500, .height = 500,
     .x = 100, .y = 100,
-    .borderWidth = 0,
     .classId = 0,
     .pixelFormat = defaultPixelFormat,
   };
@@ -1188,7 +1187,7 @@ int32_t tsekW_socket_recv(tsekISocket* socket, char* message, uint32_t length, u
   int recv_flags = 0;
   if (flags & TSEKI_SOCKET_OOB) flags |= MSG_OOB;
   if (flags & TSEKI_SOCKET_PEEK) flags |= MSG_PEEK;
-  if (flags & TSEKI_SOCKET_WAITALL) flags |= MSG_DONTROUTE;
+  if (flags & TSEKI_SOCKET_WAITALL) flags |= MSG_WAITALL;
   return recv(socket->handle, message, length, flags);
 }
 

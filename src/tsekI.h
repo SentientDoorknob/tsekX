@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include "../libs/glad.h"
 
 #define TSEKI_MAX_KEYMAP_SIZE 256
 #define TSEKI_TARGET_FRAMERATE 60
@@ -191,7 +192,6 @@ typedef struct {
   const wchar_t* title;
   uint32_t width, height;
   int32_t x, y;
-  uint32_t borderWidth;
   uint32_t classId;
   tsekIPixelFormat pixelFormat;
 } tsekIWindowInfo;

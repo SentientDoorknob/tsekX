@@ -238,7 +238,7 @@ GLXFBConfig Lget_FBConfig(tsekIWindowInfo* info, tsekIContext* context) {
 	return fbConfig;
 }
 
-void tsekI_fill_context(tsekIContext* context) {
+void tsekL_fill_context(tsekIContext* context) {
 	context->inner = malloc(sizeof(tsekLContext));
 	tsekLContext* Lcontext = Lget_context(context);
 
@@ -249,7 +249,7 @@ void tsekI_fill_context(tsekIContext* context) {
 	Lcontext->context = XUniqueContext();
 
 #ifdef TSEKI_DEBUG
-	printf("[LD@tsekI_fill_context] Display Opened\n");
+	printf("[LD@tsekL_fill_context] Display Opened\n");
 #endif
 
 	XSynchronize(Lcontext->display, true);
@@ -260,9 +260,21 @@ void tsekI_fill_context(tsekIContext* context) {
 	Bool supported;
 	XkbSetDetectableAutoRepeat(Lcontext->display, True, &supported);
 
+	int major = 2;
+	int minor = 0;
+
+	int rc = XIQueryVersion(
+			Lcontext->display,
+			&major,
+			&minor
+			);
+
+	if (rc != Success) {
+		printf("XIQueryVersion failed: %d\n", rc);
+	}
 }
 
-void tsekI_destroy_context(tsekIContext *context) {
+void tsekL_destroy_context(tsekIContext *context) {
 	tsekLContext* c = Lget_context(context);
 	XCloseDisplay(c->display);
 	free(context->inner);
@@ -286,7 +298,7 @@ void tsekL_create_window(tsekIContext* context, tsekIWindow* window, tsekIWindow
 
 	if (!gladLoadGL()) {
 #ifdef TSEKI_DEBUG
-		fprintf(stderr, "[LE@tsekI_create_window] Failed to initialise GLAD\n");
+		fprintf(stderr, "[LE@tsekL_create_window] Failed to initialise GLAD\n");
 #endif
 	}
 
@@ -332,7 +344,7 @@ void tsekL_create_window(tsekIContext* context, tsekIWindow* window, tsekIWindow
 	XSaveContext(Lcontext->display, Lwindow->window, Lcontext->context, (XPointer)window);
 
 #ifdef TSEKI_DEBUG
-	printf("[LD@tsekI_create_window] Window Mapped. Window ID: %lu\n", Lwindow.window);
+	printf("[LD@tsekL_create_window] Window Mapped. Window ID: %lu\n", Lwindow.window);
 #endif
 
 	XSetWMProtocols(Lcontext->display, Lwindow->window, &Lcontext->WM_DELETE, 1);
@@ -343,6 +355,7 @@ void tsekL_create_window(tsekIContext* context, tsekIWindow* window, tsekIWindow
 			KeyReleaseMask |
 			ButtonPressMask |
 			ButtonReleaseMask |
+			PropertyChangeMask |
 			ResizeRequest);
 
 	glXMakeCurrent(Lcontext->display, Lwindow->window, Lcontext->glContext);
@@ -361,7 +374,7 @@ void tsekL_create_window(tsekIContext* context, tsekIWindow* window, tsekIWindow
 
 	XISelectEvents(
 			Lcontext->display,
-			Lwindow->window,
+			DefaultRootWindow(Lcontext->display),
 			&mask,
 			1);
 
@@ -372,9 +385,13 @@ void tsekL_create_window(tsekIContext* context, tsekIWindow* window, tsekIWindow
 }
 
 void tsekL_destroy_window(tsekIWindow* window) {
+	free(window->inner);
+}
+
+void tsekL_close_window(tsekIWindow* window) {
+	Lget_window(window)->isOpen = false;
 	glXMakeCurrent(Lget_window(window)->context->display, None, NULL);
 	tsekL_set_cursor_visible(window, true);
-	free(window->inner);
 }
 
 void tsekL_init() {
@@ -452,7 +469,7 @@ void tsekL_swap_buffers(tsekIWindow* window) {
 }
 
 bool tsekL_is_window_closed(tsekIWindow* window) {
-	return Lget_window(window)->isOpen;
+	return !Lget_window(window)->isOpen;
 }
 
 tsekIKeyCode Lget_keycode(int linuxcode) {
@@ -750,7 +767,7 @@ void tsekL_get_param(tsekIWindow* window, tsekIWindowParam param, void* out) {
 
 		case TSEKI_WINDOW_STATE: {
 				tsekIWindowState* p = out;
-				*p = Lwindow->windowState;
+				*p = Lget_window_state(window);
 				break;
 														 }
 
@@ -925,7 +942,7 @@ void tsekL_destroy_address_info(tsekIAddressInfo* info) {
 void tsekL_init_network() {
 }
 
-void tsekL_cleanup_netwok () {
+void tsekL_cleanup_network() {
 }
 
 void tsekL_socket_create(tsekISocket* sock) {

@@ -222,6 +222,7 @@ void tsekI_destroy_context(tsekIContext* context);
 
 void tsekI_create_window(tsekIContext*, tsekIWindow* window, tsekIWindowInfo* info);
 void tsekI_destroy_window(tsekIWindow* window);
+void tsekI_close_window(tsekIWindow* window);
 
 bool tsekI_is_window_closed(tsekIWindow*);
 bool tsekI_update_window(tsekIWindow* window);

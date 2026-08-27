@@ -665,8 +665,11 @@ void tsekW_create_window(tsekIContext* context, tsekIWindow* window, tsekIWindow
   free(className);
 }
 
-void tsekW_destroy_window(tsekIWindow* window) {
+void tsekW_close_window(tsekIWindow* window) {
   DestroyWindow(Wget_window(window)->handle);
+}
+
+void tsekW_destroy_window(tsekIWindow* window) {
   free(window->inner);
 }
 

@@ -59,6 +59,14 @@ void tsekI_destroy_window(tsekIWindow* window) {
 #endif
 }
 
+void tsekI_close_window(tsekIWindow* window) {
+#ifdef PLATFORM_LINUX
+	  tsekL_close_window(window);
+#elif defined(PLATFORM_WINDOWS)
+		tsekW_close_window(window);
+#endif
+}
+
 bool tsekI_is_window_closed(tsekIWindow* window) {
 #ifdef PLATFORM_LINUX
     return tsekL_is_window_closed(window);

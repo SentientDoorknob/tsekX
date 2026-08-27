@@ -50,12 +50,12 @@ void OnKeyDown(tsekIWindow* window, tsekIKeyCode key) {
   }
 
   if (key == TSEKI_ESCAPE) {
-    tsekI_destroy_window(window);
+		tsekI_close_window(window);
   }
 }
 
 void OnKeyUp(tsekIWindow* window, tsekIKeyCode key) {
-  printf("OnKeyUp %d\n");
+  printf("OnKeyUp %d\n", key);
 }
 
 void OnKeyType(tsekIWindow* window, tsekIKeyCode key) {
@@ -125,6 +125,8 @@ int main(int argc, char** argv) {
   if (strcmp(argv[1], "window") == 0) {
     tsekI();
   }
+
+	printf("Exiting Normally!\n");
 
   return 0;
 }

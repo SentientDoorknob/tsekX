@@ -57,6 +57,7 @@ void tsekL_destroy_context(tsekIContext* context);
 
 void tsekL_create_window(tsekIContext*, tsekIWindow* window, tsekIWindowInfo* info);
 void tsekL_destroy_window(tsekIWindow* window);
+void tsekL_close_window(tsekIWindow* window);
 
 bool tsekL_is_window_closed(tsekIWindow*);
 bool tsekL_update_window(tsekIWindow* window);

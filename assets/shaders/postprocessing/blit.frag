@@ -7,5 +7,7 @@ uniform sampler2D mainTex;
 out vec4 oCol;
 
 void main() {
-  oCol = texture(mainTex, fTex);
+  vec2 tex = fTex;
+  tex.y = 1 - tex.y;
+  oCol = texture(mainTex, tex);
 }

@@ -1,7 +1,7 @@
 CC = gcc
 
 CFLAGS = -I.
-DEBUG_FLAGS = -g -O0 -save-temps
+DEBUG_FLAGS = -g -O0 -DTSEKX_DEBUG
 
 LDFLAGS_LINUX = -lX11 -lc -lGL -lm -Lopenssl/openssl-0.9.8k/ -lssl -lcrypto -Iopenssl/openssl-0.9.8k/include -lXi
 LDFLAGS_WINDOWS = -lopengl32 -lgdi32 -lwinmm -lws2_32 -lsecur32 -lcrypt32
@@ -10,7 +10,7 @@ LDFLAGS =
 
 DEPS = src/tsekI.h src/tsekG.h src/linux/tsekL.h src/windows/tsekW.h libs/glad.h src/tsekM.h src/tsekF.h
 
-OBJS = src/tsekI.o src/tsekG.o src/linux/tsekL.o src/windows/tsekW.o libs/glad.o src/tsekM.o src/tsekF.o
+OBJS = src/tsekI.o src/tsekG.o src/linux/tsekL.o src/windows/tsekW.o libs/glad.o src/tsekM.o src/tsekF.o 
 MAIN_OBJS = main.o $(OBJS)
 TEST_OBJS = test.o $(OBJS)
 
@@ -71,4 +71,4 @@ test: $(TEST_OBJS)
 	$(CC) -c $< -o $@ $(CFLAGS)
 
 clean: 
-	rm -f $(OBJS) tsekI
+	rm -f $(OBJS) main.o test.o tsekI

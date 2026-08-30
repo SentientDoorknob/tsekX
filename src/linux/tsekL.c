@@ -1,4 +1,3 @@
-#include <X11/extensions/XI2.h>
 #ifdef PLATFORM_LINUX
 
 #include "../tsekI.h"
@@ -11,6 +10,7 @@
 #include <X11/X.h>
 #include <X11/extensions/XKBstr.h>
 #include <X11/extensions/XInput2.h>
+#include <X11/extensions/XI2.h>
 #include <X11/Xatom.h>
 
 #include <complex.h>

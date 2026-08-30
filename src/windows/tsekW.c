@@ -1,3 +1,4 @@
+#include <windows.h>
 #ifdef PLATFORM_WINDOWS
 
 #include "tsekW.h"
@@ -381,7 +382,7 @@ void Wregister_windowclass(tsekIWindowInfo* info) {
   windowClassInfo.lpfnWndProc = Wproc_window;
 
 #ifdef TSEKI_DEBUG
-  printf("[WD@Wregister_windowclass] Registering Window Class");
+  printf("[WD@Wregister_windowclass] Registering Window Class\n");
 #endif
 
   if (!RegisterClassExW(&windowClassInfo)) {
@@ -522,7 +523,11 @@ void Wcreate_tsekG_context(tsekIPixelFormat* format, tsekIWindow* window) {
 #ifdef TSEKI_DEBUG
     fprintf(stderr, "[WE@Wcreate_tsekG_context] Failed to load GLAD\n");
 #endif
-  }
+  } else {
+#ifdef TSEKI_DEBUG
+		printf("[WD@Wcreate_tsekG_context] Successfully loaded GLAD\n");
+#endif
+	}
 }
 
 void tsekW_init() {
@@ -579,11 +584,15 @@ void Wcreate_dummy_window(tsekIWindow* window) {
     HINSTANCE hInstance = Wget_hInstance();
     window->inner = calloc(1, sizeof(tsekWWindow));
 
-    Wregister_windowclass(&(tsekIWindowInfo){});
-#ifdef TSEKI_DEBUG
-    printf("[WD@Wcreate_dummy_window] WNDCLASS registered\n");
-#endif
-    tsekWWindow* wwindow = Wget_window(window);
+		WNDCLASSEXW wc = {};
+		wc.cbSize = sizeof(wc);
+		wc.lpfnWndProc = DefWindowProcW;
+		wc.hInstance = hInstance;
+		wc.lpszClassName = L"DUMMY";
+
+		RegisterClassExW(&wc);
+
+		tsekWWindow* wwindow = Wget_window(window);
 
 #ifdef TSEKI_DEBUG
     printf("[WD@Wcreate_dummy_window] Running CreateWindowExW... \n");

@@ -23,6 +23,7 @@ void tsekM_rotate_axis(float* out, float angle, float* axis);
 void tsekM_perspective(float* out, float fov, float aspect_ratio, float near, float far);
 void tsekM_symmetric(float* out, float x, float y, float z);
 void tsekM_orthographic(float *out, float left, float right, float bottom, float top, float near, float far);
+void tsekM_rotate_match_axis(float* out, float* from, float* to);
 
 float tsekM_determinant(float* matrix, uint32_t dim);
 
@@ -39,6 +40,7 @@ void tsekM_look_at(float* out, float* pos, float* target);
 void tsekM_direction_euler(float* out, float pitch, float yaw);
 
 float tsekM_radians(float angle);
+float tsekM_degrees(float angle);
 float tsekM_clamp(float x, float min, float max);
 
 #endif

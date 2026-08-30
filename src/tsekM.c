@@ -6,6 +6,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#define TSEKM_EPSILON 1e-6f
+
 void Mswap_elements(float* mat, int x1, int y1, int x2, int y2, int width) {
   float* first = mat + y1 * width + x1;
   float* second = mat + y2 * width + x2;
@@ -299,6 +301,42 @@ void tsekM_rotate_axis(float* out, float angle, float* axis) {
   memcpy(out, mat, 16 * sizeof(float));
 }
 
+void tsekM_rotate_match_axis(float* out, float* from, float* to) {
+
+	float t[3], f[3];
+	tsekM_normalise(t, to, 3);
+	tsekM_normalise(f, from, 3);
+
+	float axis[3];
+	tsekM_cross(axis, f, t, false);
+
+	float cos_angle = tsekM_clamp(tsekM_dot(f, t, 3), -1.0f, 1.0f);
+	float sin_angle = tsekM_length(axis, 3);
+
+	float angle = atan2(sin_angle, cos_angle);
+
+	if (cos_angle > 1.0f - TSEKM_EPSILON) {
+		tsekM_symmetric(out, 1, 1, 1);
+		return;
+	}
+
+	if (cos_angle < -1.0f + TSEKM_EPSILON) {
+		float ref[3] = { 1, 0, 0 };
+
+		if (fabsf(f[0]) > 0.9f) {
+			ref[0] = 0;
+			ref[1] = 1;
+		}
+
+		tsekM_cross(axis, f, ref, false);
+		tsekM_normalise(axis, axis, 3);
+		tsekM_rotate_axis(out, M_PI, axis);
+		return;
+	}
+
+	tsekM_normalise(axis, axis, 3);
+	tsekM_rotate_axis(out, angle, axis);
+}
 
 void tsekM_perspective(float* out, float fov, float aspect_ratio, float near, float far) {
   
@@ -437,4 +475,8 @@ void tsekM_direction_euler(float* out, float pitch, float yaw) {
 
 float tsekM_clamp(float x, float mi, float ma) {
   return fmax(fmin(x, ma), mi);
+}
+
+float tsekM_degrees(float angle) {
+	return angle / M_PI * 180;
 }
